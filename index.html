@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pixel Sunset Pomodoro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+<style>
+  /* Layout: full-bleed pixel scene; time sits in the sky, controls float on the sea. */
+  :root {
+    --ink: #1a0f2e;        /* outline / shadow */
+    --paper: #fff4e0;      /* text */
+    --sun: #ffc15e;        /* accent */
+    --sun-deep: #f7894a;
+    --panel: #1a1233;
+    --muted: #cdb9d8;
+    --pixel: "Press Start 2P", ui-monospace, "Courier New", monospace;
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--pixel);
+    overflow: hidden;
+  }
+  #scene {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    display: block;
+  }
+  .ui {
+    position: relative;
+    height: 100%;
+    display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+    padding-block: max(20px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    text-align: center;
+  }
+  /* spacing scale: 8 / 16 / 24 / 32 */
+  .top, .bottom { width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .bottom { gap: 16px; }
+  .bar { width: 100%; max-width: 1080px; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; }
+  .bar .modes { grid-column: 2; justify-self: center; }
+
+  .modes { display: flex; gap: 4px; padding: 4px; background: rgba(26, 15, 46, .55); border: 2px solid rgba(255, 244, 224, .25); }
+  .mode {
+    height: 32px; padding: 0 12px;
+    font: 10px/1 var(--pixel); letter-spacing: .04em;
+    color: var(--paper); background: transparent; border: 0; cursor: pointer;
+  }
+  .mode[aria-selected="true"] { background: var(--paper); color: var(--ink); }
+  .mode:hover:not([aria-selected="true"]) { background: rgba(255, 244, 224, .12); }
+
+  .time {
+    font: clamp(44px, 13vw, 120px)/1 var(--pixel);
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0.0625em 0.0625em 0 var(--ink);
+    margin-top: 32px;
+  }
+  .label { margin-top: 24px; font: 10px/1 var(--pixel); letter-spacing: .1em; padding-left: .1em; text-transform: uppercase; color: var(--paper); text-shadow: 2px 2px 0 var(--ink); }
+  .dots { margin-top: 16px; display: flex; gap: 8px; min-height: 10px; }
+  .dot { width: 10px; height: 10px; background: rgba(26, 15, 46, .5); box-shadow: 0 0 0 2px var(--paper) inset; }
+  .dot.on { background: var(--sun); box-shadow: 0 0 0 2px var(--ink) inset; }
+
+  .controls { display: flex; gap: 16px; align-items: center; }
+  .btn {
+    height: 52px; min-width: 7.5em; padding: 0 16px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font: 11px/1 var(--pixel); letter-spacing: .06em;
+    color: var(--paper); background: rgba(26, 15, 46, .65);
+    border: 3px solid var(--paper);
+    cursor: pointer;
+    box-shadow: 0 4px 0 var(--ink);
+    transition: transform .06s;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+  .btn.primary { background: var(--sun); color: var(--ink); border-color: var(--ink); font-size: 13px; min-width: 10em; }
+  .btn.primary:hover { background: #ffd27a; }
+  .btn:not(.primary):hover { background: rgba(26, 15, 46, .85); }
+  .today {
+    margin: 0; padding: 8px 12px;
+    font: 8px/1.4 var(--pixel); letter-spacing: .1em; text-transform: uppercase;
+    color: var(--paper); background: rgba(26, 15, 46, .65); border: 2px solid rgba(255, 244, 224, .25);
+  }
+
+  .time.peek { opacity: .45; }
+  .mode { position: relative; }
+  .mode[data-live="true"]::after { content: ""; position: absolute; top: 3px; right: 3px; width: 4px; height: 4px; background: var(--sun); }
+  .label[data-state="paused"] { animation: blink 1.2s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: .35; } }
+  .hint { margin-top: 16px; font: 8px/1.4 var(--pixel); letter-spacing: .1em; text-transform: uppercase; color: var(--paper); opacity: .75; text-shadow: 1px 1px 0 var(--ink); }
+  .toast {
+    min-height: 34px; padding: 10px 14px;
+    font: 9px/1.4 var(--pixel); letter-spacing: .06em; text-transform: uppercase;
+    color: var(--ink); background: var(--paper); border: 2px solid var(--ink); box-shadow: 0 4px 0 var(--ink);
+    opacity: 0; transform: translateY(6px); transition: opacity .2s, transform .2s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: none; }
+  .keys { margin: 0; font: 7px/1.8 var(--pixel); letter-spacing: .08em; text-transform: uppercase; color: var(--paper); opacity: .6; text-shadow: 1px 1px 0 var(--ink); }
+  .keys kbd { font: inherit; padding: 2px 4px; margin: 0 2px 0 8px; border: 1px solid rgba(255, 244, 224, .5); }
+  .keys kbd + kbd { margin-left: 2px; }
+  @media (pointer: coarse) { .keys { display: none; } }
+
+  .gear {
+    grid-column: 3;
+    width: 44px; height: 44px; display: grid; place-items: center;
+    background: rgba(26, 15, 46, .55); border: 2px solid rgba(255, 244, 224, .25); color: var(--paper); cursor: pointer;
+  }
+  .gear:hover { background: rgba(26, 15, 46, .85); }
+  .gear svg { shape-rendering: crispEdges; }
+
+  :focus-visible { outline: 3px solid var(--sun); outline-offset: 3px; }
+
+  dialog {
+    width: min(420px, calc(100% - 32px));
+    background: var(--panel); color: var(--paper);
+    border: 3px solid var(--sun); padding: 0;
+    box-shadow: 8px 8px 0 var(--ink);
+    font-family: var(--pixel);
+  }
+  dialog::backdrop { background: rgba(10, 6, 24, .6); }
+  .sheet { padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+  .sheet h2 { margin: 0; font: 14px/1 var(--pixel); letter-spacing: .06em; color: var(--sun); }
+  .group { display: grid; grid-template-columns: 1fr 72px 48px; gap: 12px; align-items: center; }
+  .group-title { grid-column: 1 / -1; padding-bottom: 8px; border-bottom: 2px solid rgba(255, 244, 224, .12); font: 8px/1 var(--pixel); letter-spacing: .14em; color: var(--muted); }
+  .group label { grid-column: 1; font: 10px/1.6 var(--pixel); cursor: pointer; }
+  .group input[type="number"] {
+    width: 72px; height: 36px; padding: 0 10px;
+    font: 12px/1 var(--pixel); color: var(--paper); background: var(--ink);
+    border: 2px solid rgba(255, 244, 224, .3); text-align: right;
+    appearance: textfield; -moz-appearance: textfield;
+  }
+  .group input[type="number"]::-webkit-inner-spin-button,
+  .group input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .group input[type="number"]:focus { border-color: var(--sun); outline: none; }
+  .group input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none; margin: 0; justify-self: end;
+    width: 22px; height: 22px; background: var(--ink); border: 2px solid rgba(255, 244, 224, .5); cursor: pointer;
+  }
+  .group input[type="checkbox"]:checked { background: var(--sun); border-color: var(--sun); box-shadow: inset 0 0 0 3px var(--ink); }
+  .unit { font: 8px/1 var(--pixel); letter-spacing: .1em; color: var(--muted); }
+  .sheet .btn.primary { align-self: stretch; min-width: 0; }
+
+  @media (max-height: 560px) { .time { margin-top: 16px; } .label { margin-top: 16px; } }
+  @media (max-width: 420px) { .controls { gap: 8px; } .btn { min-width: 0; padding: 0 12px; } .btn.primary { min-width: 8em; } }
+  @media (prefers-reduced-motion: reduce) { .btn, .toast { transition: none; } .label[data-state="paused"] { animation: none; } }
+</style>
+</head>
+<body>
+<canvas id="scene" aria-hidden="true"></canvas>
+
+<main class="ui">
+  <section class="top">
+    <div class="bar">
+      <div class="modes" role="tablist" aria-label="Timer mode">
+        <button class="mode" role="tab" data-mode="focus" id="tab-focus">FOCUS</button>
+        <button class="mode" role="tab" data-mode="short" id="tab-short">SHORT</button>
+        <button class="mode" role="tab" data-mode="long" id="tab-long">LONG</button>
+      </div>
+      <button class="gear" id="openSettings" aria-label="Settings" title="Settings">
+        <svg width="20" height="20" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
+          <rect x="0" y="1" width="10" height="1"/><rect x="6" y="0" width="2" height="3"/>
+          <rect x="0" y="5" width="10" height="1"/><rect x="2" y="4" width="2" height="3"/>
+          <rect x="0" y="8" width="10" height="1"/><rect x="5" y="7" width="2" height="3"/>
+        </svg>
+      </button>
+    </div>
+    <div class="time" id="time">25:00</div>
+    <div class="label" id="label">Session 1 of 4</div>
+    <div class="dots" id="dots" title="Focus sessions completed this cycle"></div>
+    <div class="hint" id="hint"></div>
+  </section>
+
+  <section class="bottom">
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="controls">
+      <button class="btn" id="reset" title="Reset (R)">RESET</button>
+      <button class="btn primary" id="toggle" title="Start / pause (Space)">START</button>
+      <button class="btn" id="skip" title="Skip (S)">SKIP</button>
+    </div>
+    <p class="today" id="today">Today · 0 sessions · 0 min</p>
+    <p class="keys"><kbd>SPACE</kbd> start/pause <kbd>S</kbd> skip <kbd>R</kbd> reset <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> modes</p>
+  </section>
+</main>
+
+<dialog id="settings" aria-labelledby="settingsTitle">
+  <form class="sheet" id="settingsForm" method="dialog">
+    <h2 id="settingsTitle">SETTINGS</h2>
+    <div class="group">
+      <div class="group-title">DURATIONS</div>
+      <label for="s-focus">Focus</label><input type="number" id="s-focus" min="1" max="180"><span class="unit">MIN</span>
+      <label for="s-short">Short break</label><input type="number" id="s-short" min="1" max="60"><span class="unit">MIN</span>
+      <label for="s-long">Long break</label><input type="number" id="s-long" min="1" max="90"><span class="unit">MIN</span>
+      <label for="s-interval">Long break after</label><input type="number" id="s-interval" min="1" max="12"><span class="unit">FOCUS</span>
+    </div>
+    <div class="group">
+      <div class="group-title">FLOW</div>
+      <label for="s-autoBreak">Auto-start breaks</label><input type="checkbox" id="s-autoBreak">
+      <label for="s-autoFocus">Auto-start focus</label><input type="checkbox" id="s-autoFocus">
+      <label for="s-sound">End chime</label><input type="checkbox" id="s-sound">
+    </div>
+    <button class="btn primary" value="close">DONE</button>
+  </form>
+</dialog>
+
+<script>
+(() => {
+  // ---------- storage (best effort) ----------
+  const load = (k, d) => { try { return { ...d, ...JSON.parse(localStorage.getItem(k) || "{}") }; } catch { return { ...d }; } };
+  const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+  const todayKey = () => new Date().toLocaleDateString("en-CA");
+
+  const settings = load("pps.settings", { focus: 25, short: 5, long: 15, interval: 4, autoBreak: true, autoFocus: false, sound: true });
+  let today = load("pps.today", { date: todayKey(), sessions: 0, minutes: 0, cycle: 0 });
+  const rollDay = () => { if (today.date !== todayKey()) today = { date: todayKey(), sessions: 0, minutes: 0, cycle: 0 }; };
+  rollDay();
+
+  // ---------- timer state ----------
+  const MODES = { focus: "Focus", short: "Short break", long: "Long break" };
+  const dur = m => settings[m] * 60000;
+  // mode = the session the clock belongs to; view = the tab on screen (can "peek" while a session runs)
+  let mode = "focus", view = "focus", running = false, endAt = 0, remaining = dur(mode);
+
+  const $ = id => document.getElementById(id);
+  const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
+  const progress = () => 1 - remaining / dur(mode);
+
+  function render() {
+    const t = fmt(remaining), paused = !running && remaining < dur(mode), peek = view !== mode;
+    $("time").textContent = peek ? fmt(dur(view)) : t;
+    $("time").classList.toggle("peek", peek);
+    document.title = `${paused ? "❚❚ " : ""}${t} · ${MODES[mode]}`;
+    $("toggle").textContent = peek ? `START ${view === "focus" ? "FOCUS" : view.toUpperCase()}` : running ? "PAUSE" : (paused ? "RESUME" : "START");
+    document.querySelectorAll(".mode").forEach(b => {
+      b.setAttribute("aria-selected", b.dataset.mode === view);
+      b.dataset.live = running && b.dataset.mode === mode;
+    });
+    const done = mode === "long" ? settings.interval : today.cycle % settings.interval;
+    const state = peek ? "preview" : running ? (mode === "focus" ? "focusing" : "resting") : paused ? "paused" : "ready";
+    $("label").textContent = (peek ? MODES[view] : mode === "focus" ? `Session ${done + 1} of ${settings.interval}` : MODES[mode]) + " · " + state;
+    $("label").dataset.state = state;
+    $("hint").textContent = peek
+      ? `${MODES[mode]} still running · ${t} left · click ${mode.toUpperCase()} to return`
+      : mode === "focus"
+      ? (running ? "The sun sets as you focus" : `${settings.interval - done} focus session${settings.interval - done === 1 ? "" : "s"} until a long break`)
+      : mode === "long" ? "Long break: the mountains rise" : "Short break: stretch, drink water";
+    $("dots").innerHTML = Array.from({ length: settings.interval }, (_, i) => `<span class="dot${i < done ? " on" : ""}"></span>`).join("");
+    $("today").textContent = `Today · ${today.sessions} session${today.sessions === 1 ? "" : "s"} · ${today.minutes} min`;
+  }
+
+  function start() {
+    if (running) return;
+    unlockAudio();
+    running = true; endAt = Date.now() + remaining;
+    keepAwake(true); render();
+  }
+  function pause() {
+    if (!running) return;
+    running = false; remaining = Math.max(0, endAt - Date.now());
+    keepAwake(false); render();
+  }
+  function reset() { running = false; remaining = dur(mode); keepAwake(false); render(); }
+  // switching modes keeps the clock going if it was already running
+  function setMode(m, keep = false) { mode = view = m; reset(); if (keep) start(); }
+  function toggle() {
+    if (view !== mode) { setMode(view, true); toast(`${MODES[view]} started`); }
+    else running ? pause() : start();
+  }
+
+  let toastTimer;
+  function toast(msg) {
+    const el = $("toast");
+    el.textContent = msg; el.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2800);
+  }
+
+  // counted = finished naturally (counts toward stats); false = skipped
+  function advance(counted) {
+    rollDay();
+    const was = running;
+    let next;
+    if (mode === "focus") {
+      if (counted) { today.sessions++; today.minutes += settings.focus; }
+      today.cycle++;
+      next = today.cycle % settings.interval === 0 ? "long" : "short";
+    } else next = "focus";
+    save("pps.today", today);
+    if (counted) chime(mode === "focus");
+    const from = mode;
+    const auto = counted ? (next === "focus" ? settings.autoFocus : settings.autoBreak) : was;
+    setMode(next, auto);
+    const msg = counted
+      ? (from === "focus" ? (next === "long" ? "Cycle complete! Long break, the mountains rise" : "Focus done. Take a short break") : "Break over. Back to focus")
+      : `Skipped to ${MODES[next].toLowerCase()}`;
+    toast(msg + (auto ? "" : " · press START"));
+  }
+
+  setInterval(() => {
+    if (!running) return;
+    remaining = endAt - Date.now();
+    if (remaining <= 0) { remaining = 0; advance(true); } else render();
+  }, 200);
+
+  $("toggle").onclick = toggle;
+  $("reset").onclick = () => { view = mode; reset(); };
+  $("skip").onclick = () => advance(false);
+  function pickMode(m) {
+    if (m === view) return;
+    if (running) {                       // peek: the running session keeps counting
+      view = m; render();
+      toast(m === mode ? `Back to ${MODES[m].toLowerCase()}` : `${MODES[mode]} keeps running · press START ${m.toUpperCase()} to switch`);
+    } else { setMode(m); toast(`${MODES[m]} ready · press START`); }
+  }
+  document.querySelectorAll(".mode").forEach(b => b.onclick = () => pickMode(b.dataset.mode));
+
+  document.addEventListener("keydown", e => {
+    if ($("settings").open || e.target.closest("input, textarea") || e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === " ") { e.preventDefault(); toggle(); }
+    else if (k === "r") { view = mode; reset(); }
+    else if (k === "s") advance(false);
+    else if (k === "1") pickMode("focus");
+    else if (k === "2") pickMode("short");
+    else if (k === "3") pickMode("long");
+  });
+
+  // ---------- settings ----------
+  const LIMITS = { focus: [1, 180], short: [1, 60], long: [1, 90], interval: [1, 12] };
+  const dlg = $("settings");
+  $("openSettings").onclick = () => {
+    for (const k in LIMITS) $("s-" + k).value = settings[k];
+    for (const k of ["autoBreak", "autoFocus", "sound"]) $("s-" + k).checked = settings[k];
+    dlg.showModal();
+  };
+  $("settingsForm").addEventListener("input", e => {
+    const k = e.target.id.slice(2);
+    if (k in LIMITS) {
+      const v = Math.round(Number(e.target.value));
+      if (!Number.isFinite(v) || v < LIMITS[k][0]) return;
+      settings[k] = Math.min(LIMITS[k][1], v);
+    } else settings[k] = e.target.checked;
+    save("pps.settings", settings);
+    if (!running) remaining = dur(mode);
+    render();
+  });
+  dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+
+  // ---------- wake lock (optional) ----------
+  let lock = null;
+  async function keepAwake(on) {
+    try {
+      if (on && !lock && navigator.wakeLock) { lock = await navigator.wakeLock.request("screen"); lock.addEventListener("release", () => lock = null); }
+      if (!on && lock) { await lock.release(); lock = null; }
+    } catch { lock = null; }
+  }
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && running) keepAwake(true); });
+
+  // ---------- 8-bit chime ----------
+  let ac = null;
+  function unlockAudio() { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); ac.resume(); } catch {} }
+  function chime(up) {
+    if (!settings.sound || !ac) return;
+    const notes = up ? [523.25, 659.25, 783.99, 1046.5] : [1046.5, 783.99, 659.25, 523.25];
+    notes.forEach((f, i) => {
+      const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + i * 0.12;
+      o.type = "square"; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.06, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+      o.connect(g).connect(ac.destination); o.start(t); o.stop(t + 0.2);
+    });
+  }
+
+  // ---------- pixel sunset scene ----------
+  const cv = $("scene"), ctx = cv.getContext("2d");
+  let H = 90, HZ = 60;                 // logical height, horizon row (recomputed on resize)
+  let W = 160, img, px, stars = [], clouds = [], birds = [], farR = [], nearR = [];
+  const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const BAYER = [[0.125, 0.625], [0.875, 0.375]];
+  const hash = (a, b, c = 0) => { let n = Math.imul(a, 374761393) + Math.imul(b, 668265263) + Math.imul(c, 1274126177); n = Math.imul(n ^ (n >>> 13), 1274126177); return ((n ^ (n >>> 16)) >>> 0) / 4294967296; };
+
+  // sky bands top -> horizon, keyed by phase (0 golden hour .. 1 night)
+  const SKY = [
+    [0.00, ["#3b2a6b", "#6a3a8c", "#b04e8f", "#e8706f", "#f7a65a", "#ffd27a"]],
+    [0.55, ["#1f1847", "#3d2160", "#7a2b6e", "#c43d63", "#ee6b4d", "#f9a14a"]],
+    [0.85, ["#141337", "#24205a", "#3f2a72", "#6b3378", "#a5486e", "#d86a5a"]],
+    [1.00, ["#0b0b24", "#111433", "#191c46", "#222558", "#2b2d66", "#363874"]],
+  ].map(([p, c]) => [p, c.map(hex)]);
+  const FAR = [[0, hex("#8a3f78")], [0.6, hex("#4a2660")], [1, hex("#1a1940")]];
+  const NEAR = [[0, hex("#4a2350")], [0.6, hex("#2a1640")], [1, hex("#0b0a1e")]];
+  const keyed = (keys, p) => {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [p0, a] = keys[i], [p1, b] = keys[i + 1];
+      if (p <= p1) { const t = clamp((p - p0) / (p1 - p0)); return Array.isArray(a[0]) ? a.map((c, j) => mix(c, b[j], t)) : mix(a, b, t); }
+    }
+    return keys[keys.length - 1][1];
+  };
+
+  function build() {
+    const s = Math.min(innerWidth, innerHeight) / 90;      // square pixels: short side = 90 px
+    W = Math.round(innerWidth / s); H = Math.round(innerHeight / s); HZ = Math.round(H * 0.667);
+    cv.width = W; cv.height = H;
+    img = ctx.createImageData(W, H); px = img.data;
+    stars = Array.from({ length: Math.round(W * 0.35) }, (_, i) => ({ x: Math.floor(hash(i, 1) * W), y: Math.floor(hash(i, 2) * (HZ - 14)), r: hash(i, 3), k: Math.floor(hash(i, 4) * 40) }));
+    clouds = Array.from({ length: Math.max(3, Math.round(W / 50)) }, (_, i) => ({ x: hash(i, 5) * W, y: 8 + Math.floor(hash(i, 6) * 26), len: 10 + Math.floor(hash(i, 7) * 18), v: 0.6 + hash(i, 8) * 0.8 }));
+    birds = [0, 1, 2].map(i => ({ x: hash(i, 9) * W, y: 20 + Math.floor(hash(i, 10) * 14), v: 3 + hash(i, 11) * 2, k: hash(i, 12) * 6 }));
+    farR = []; nearR = [];
+    for (let x = 0; x < W; x++) {
+      const f = 0.5 * Math.sin(x * 0.055 + 1.3) + 0.3 * Math.sin(x * 0.17 + 4) + 0.2 * Math.sin(x * 0.43 + 2);
+      farR[x] = 6 + f * 5;                                      // ridge heights above the horizon
+      const edge = Math.pow(Math.abs(x / W - 0.5) * 2, 1.6);   // valley in the middle for the sun
+      const n = 0.6 + 0.25 * Math.sin(x * 0.09) + 0.15 * Math.sin(x * 0.31 + 1);
+      nearR[x] = edge * 16 * n;
+    }
+  }
+
+  function put(x, y, c) {
+    x |= 0; y |= 0;
+    if (x < 0 || y < 0 || x >= W || y >= H) return;
+    const i = (y * W + x) * 4;
+    px[i] = c[0]; px[i + 1] = c[1]; px[i + 2] = c[2]; px[i + 3] = 255;
+  }
+  const get = (x, y) => { const i = ((y | 0) * W + (x | 0)) * 4; return [px[i], px[i + 1], px[i + 2]]; };
+
+  // solid bands with a short dithered seam between them
+  function bandColor(bands, f, x, y) {
+    const n = bands.length - 1, ff = clamp(f) * n, i = Math.min(n - 1, Math.floor(ff));
+    const q = clamp(((ff - i) - 0.5) * 2.6 + 0.5);
+    return q > BAYER[y & 1][x & 1] ? bands[i + 1] : bands[i];
+  }
+
+  let shown = 0, moonShown = 0, mtnShown = 0;
+  function draw(t) {
+    const p = shown, tick = Math.floor(t * 8);
+    const sky = keyed(SKY, p);
+
+    // sky
+    for (let y = 0; y < HZ; y++) for (let x = 0; x < W; x++) put(x, y, bandColor(sky, y / (HZ - 1), x, y));
+
+    // stars
+    const starA = clamp((p - 0.55) / 0.35);
+    for (const s of stars) {
+      if (s.r > starA || (tick + s.k) % 37 === 0) continue;
+      put(s.x, s.y, mix(get(s.x, s.y), [255, 244, 214], s.r < 0.15 ? 1 : 0.65));
+    }
+
+    // moon (breaks)
+    if (moonShown > 0.02) {
+      const mx = Math.round(W * 0.84), my = HZ - 32, r = 5;
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (dx * dx + dy * dy > r * r + 2) continue;
+        if ((dx - 2) * (dx - 2) + (dy + 1) * (dy + 1) <= r * r - 2) continue;
+        put(mx + dx, my + dy, mix(get(mx + dx, my + dy), [244, 230, 196], moonShown));
+      }
+    }
+
+    // clouds
+    for (const c of clouds) {
+      const cx = ((c.x + t * c.v) % (W + 50)) - 25, row = sky[Math.min(5, Math.floor(c.y / HZ * 6) + 1)];
+      const lit = mix(row, [255, 214, 170], 0.45 * (1 - p)), dark = mix(row, [30, 16, 50], 0.25);
+      for (let i = 0; i < c.len; i++) put(cx + i, c.y, lit);
+      for (let i = -3; i < c.len + 3; i++) put(cx + i, c.y + 1, dark);
+      for (let i = 3; i < c.len * 0.6; i++) put(cx + i, c.y - 1, lit);
+    }
+
+    // sun
+    const r = 11, sx = Math.round(W / 2), sy = Math.round(HZ - 14 + p * 27);
+    const sunTop = hex("#fff4b0"), sunBot = mix(hex("#ff9a4a"), hex("#ff5a4a"), p);
+    for (let dy = -r - 3; dy <= r + 3; dy++) for (let dx = -r - 3; dx <= r + 3; dx++) {
+      const y = sy + dy, x = sx + dx, d2 = dx * dx + dy * dy;
+      if (y >= HZ) continue;
+      if (d2 <= r * r + 1) {
+        if (dy >= 2 && (dy - 2) % 4 < (dy > 7 ? 2 : 1)) continue;   // stripe cut-outs
+        put(x, y, mix(sunTop, sunBot, clamp((dy + r) / (2 * r))));
+      } else if (d2 <= (r + 3) * (r + 3) && BAYER[y & 1][x & 1] < 0.4 * (1 - p * 0.6)) {
+        put(x, y, mix(get(x, y), sunTop, 0.3));                          // dithered glow
+      }
+    }
+
+    // birds
+    const birdA = 1 - clamp((p - 0.6) / 0.2);
+    if (birdA > 0.5) for (const b of birds) {
+      const bx = Math.round(((b.x + t * b.v) % (W + 20)) - 10), by = b.y + Math.round(Math.sin(t + b.k));
+      const up = Math.floor(t * 4 + b.k) % 2, ink = [42, 22, 64];
+      put(bx, by, ink); put(bx - 1, by - 1, ink); put(bx + 1, by - 1, ink);
+      put(bx - 2, by - 1 - up, ink); put(bx + 2, by - 1 - up, ink);
+    }
+
+    // mountains
+    const far = keyed(FAR, p), near = keyed(NEAR, p), rim = mix(far, sunTop, 0.35 * (1 - p));
+    const snow = mix(far, [226, 222, 255], 0.55 * mtnShown);
+    for (let x = 0; x < W; x++) {
+      const fh = farR[x] * (1 + mtnShown * 1.8), ft = Math.round(HZ - fh);   // long break: mountains rise
+      for (let y = ft; y < HZ; y++) put(x, y, y === ft ? rim : (fh > 24 && y < ft + 1 + (fh - 24) / 3 ? snow : far));
+      for (let y = Math.round(HZ - nearR[x] * (1 + mtnShown * 1.4)); y < HZ; y++) put(x, y, near);
+    }
+
+    // sea
+    const seaTop = mix(sky[3], [20, 10, 40], 0.4), seaBot = mix(sky[0], [6, 4, 20], 0.6);
+    const seaBands = [0, 1, 2, 3].map(i => mix(seaTop, seaBot, i / 3));
+    const sunVis = clamp((HZ - (sy - r)) / (2 * r)) * (sy - r < HZ ? 1 : 0);
+    for (let y = HZ; y < H; y++) {
+      const d = (y - HZ) / (H - HZ);
+      for (let x = 0; x < W; x++) put(x, y, bandColor(seaBands, d, x, y));
+      // drifting wave glints
+      const dir = y & 1 ? 1 : -1, glint = mix(bandColor(seaBands, d, 0, 0), sky[4], 0.3);
+      if (y % 2) for (let k = 0; k < Math.ceil(W / 90); k++) {
+        const gx = Math.floor((hash(y, k, 7) * W + dir * t * (2 + d * 6)) % W + W) % W;
+        for (let i = 0; i < 2 + Math.floor(hash(y, k, 8) * 4); i++) put(gx + i, y, glint);
+      }
+      // sun reflection
+      if (sunVis > 0) {
+        const hw = Math.round(r * (0.6 + d * 0.9) * sunVis), refl = mix(sunBot, sunTop, 0.4 * (1 - d));
+        if ((y + (tick >> 1)) % 2 === 0) for (let x = sx - hw; x <= sx + hw; x++)
+          if (hash(x >> 1, y, tick >> 1) > 0.35) put(x, y, mix(get(x, y), refl, 0.85 - d * 0.4));
+      }
+      // moon reflection
+      if (moonShown > 0.02) {
+        const mx = Math.round(W * 0.84), hw = 2 + Math.round(d * 4);
+        if ((y + (tick >> 1)) % 3 === 0) for (let x = mx - hw; x <= mx + hw; x++)
+          if (hash(x, y, tick >> 2) > 0.4) put(x, y, mix(get(x, y), [244, 230, 196], 0.5 * moonShown));
+      }
+    }
+
+    // foreground islands + palms (silhouettes with a sun / moon rim light)
+    const sil = mix(near, [6, 3, 14], 0.45);
+    const glow = mix(mix(sil, sunBot, 0.3 * (1 - p)), [140, 140, 210], 0.18 * moonShown);
+    island(W * 0.06, Math.max(14, W * 0.16), 6, sil);
+    island(W * 0.95, Math.max(9, W * 0.1), 4, sil);
+    palm(Math.round(W * 0.07), HZ - 26, 1, 16, t, sil, glow);
+    palm(Math.round(W * 0.95), HZ - 10, -1, 11, t + 1.3, sil, glow);
+
+    ctx.putImageData(img, 0, 0);
+  }
+
+  function island(cx, rw, rh, col) {
+    for (let x = Math.floor(cx - rw); x <= cx + rw; x++) {
+      const h = Math.round(rh * Math.sqrt(Math.max(0, 1 - ((x - cx) / rw) ** 2)));
+      for (let y = H - h; y < H; y++) put(x, y, col);
+    }
+  }
+
+  // [angle, length, droop]: angles for a palm leaning right; mirrored when dir = -1
+  const FRONDS = [[0.12, 1, 1], [0.55, 0.9, 0.7], [1.15, 0.65, 0.35], [1.8, 0.6, 0.35], [2.4, 0.85, 0.7], [2.95, 1, 1], [-0.35, 0.7, 1.2], [3.5, 0.65, 1.2]];
+  function palm(bx, top, dir, L, t, col, rim) {
+    const by = H + 1, h = by - top;
+    let tx = bx, ty = top;
+    const bark = mix(col, [0, 0, 0], 0.35);
+    for (let i = 0; i <= h; i++) {                       // gently curved trunk, thicker at the base
+      const k = i / h, y = by - i, x = Math.round(bx + dir * (k * 0.12 + k * k * 0.18) * h);
+      const w = i < 5 ? 4 : 3, x0 = x - (w >> 1);
+      for (let j = 0; j < w; j++) {
+        const lit = j === (dir > 0 ? w - 1 : 0);
+        put(x0 + j, y, i % 4 === 0 ? bark : lit ? rim : col);
+      }
+      tx = x; ty = y;
+    }
+    FRONDS.forEach(([a, len, droop], n) => {
+      const ang = dir > 0 ? a : Math.PI - a, Ln = Math.round(L * len);
+      for (let s = 0; s <= Ln; s++) {
+        const q = s / Ln, sway = Math.sin(t * 1.6 + n) * 1.2 * q * q;
+        const x = Math.round(tx + Math.cos(ang) * s + sway);
+        const y = Math.round(ty - Math.sin(ang) * s + droop * q * q * Ln * 0.6);
+        put(x, y, q > 0.15 && q < 0.75 ? rim : col);   // lit spine
+        put(x, y + 1, col);
+        const leaf = Math.round(3 * Math.sin(Math.PI * q));   // leaflets: long mid-frond, short at the ends
+        for (let d = 2; d <= 1 + leaf; d++) if ((s + d) % 2 === 0 || d === 2) put(x, y + d, col);
+      }
+    });
+    const nut = mix(col, [70, 34, 24], 0.55);
+    put(tx - 1, ty + 2, nut); put(tx + 1, ty + 2, nut); put(tx, ty + 3, nut); put(tx - 1, ty + 3, nut);
+  }
+
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let last = 0;
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    if (ts - last < 1000 / 12) return;        // 12 fps keeps the 8-bit feel and the CPU idle
+    last = ts;
+    const target = mode === "focus" ? progress() * 0.92 : 1;
+    shown += (target - shown) * (reduce ? 1 : 0.08);
+    moonShown += ((mode === "focus" ? 0 : 1) - moonShown) * (reduce ? 1 : 0.08);
+    mtnShown += ((mode === "long" ? 1 : 0) - mtnShown) * (reduce ? 1 : 0.06);
+    draw(reduce ? 0 : ts / 1000);
+  }
+
+  addEventListener("resize", build);
+  build(); render(); requestAnimationFrame(loop);
+  setTimeout(() => toast("Press START. The sun sets as you focus"), 600);
+})();
+</script>
+</body>
+</html>
