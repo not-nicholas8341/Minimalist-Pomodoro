@@ -587,10 +587,11 @@
     requestAnimationFrame(loop);
     if (ts - last < 1000 / 12) return;        // 12 fps keeps the 8-bit feel and the CPU idle
     last = ts;
-    const target = mode === "focus" ? progress() * 0.92 : 1;
+    // the scene follows the tab on screen, including when peeking
+    const target = view !== "focus" ? 1 : view === mode ? progress() * 0.92 : 0;
     shown += (target - shown) * (reduce ? 1 : 0.08);
-    moonShown += ((mode === "focus" ? 0 : 1) - moonShown) * (reduce ? 1 : 0.08);
-    mtnShown += ((mode === "long" ? 1 : 0) - mtnShown) * (reduce ? 1 : 0.06);
+    moonShown += ((view === "focus" ? 0 : 1) - moonShown) * (reduce ? 1 : 0.08);
+    mtnShown += ((view === "long" ? 1 : 0) - mtnShown) * (reduce ? 1 : 0.06);
     draw(reduce ? 0 : ts / 1000);
   }
 
