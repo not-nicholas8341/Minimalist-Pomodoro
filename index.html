@@ -21,6 +21,7 @@
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html, body { height: 100%; margin: 0; }
   body {
     background: var(--ink);
@@ -210,6 +211,7 @@
   <div class="done-card">
     <div class="done-stars" aria-hidden="true">★ ★ ★</div>
     <h2 id="doneTitle">CYCLE COMPLETE</h2>
+    <p class="done-stats">The boat reached the island</p>
     <p class="done-stats" id="doneStats"></p>
     <div class="done-actions">
       <button class="btn primary" id="again">GO AGAIN</button>
@@ -278,8 +280,8 @@
     $("hint").textContent = peek
       ? `${MODES[mode]} still running · ${t} left · click ${mode.toUpperCase()} to return`
       : mode === "focus"
-      ? (running ? "The sun sets as you focus" : `${settings.interval - done} focus session${settings.interval - done === 1 ? "" : "s"} until a long break`)
-      : mode === "long" ? "Long break: the mountains rise" : "Short break: stretch, drink water";
+      ? (running ? "The sun sets and the boat sails as you focus" : `Sail the boat to the island · ${settings.interval - done} focus session${settings.interval - done === 1 ? "" : "s"} to go`)
+      : mode === "long" ? "The boat made it to the island · enjoy the long break" : "Short break: stretch, drink water";
     $("dots").innerHTML = Array.from({ length: settings.interval }, (_, i) => `<span class="dot${i < done ? " on" : ""}"></span>`).join("");
     $("today").textContent = `Today · ${today.sessions} session${today.sessions === 1 ? "" : "s"} · ${today.minutes} min`;
   }
@@ -579,12 +581,37 @@
     // foreground islands + palms (silhouettes with a sun / moon rim light)
     const sil = mix(near, [6, 3, 14], 0.45);
     const glow = mix(mix(sil, sunBot, 0.3 * (1 - p)), [140, 140, 210], 0.18 * moonShown);
+    boat(t, sil, p);
     island(W * 0.06, Math.max(14, W * 0.16), 6, sil);
     island(W * 0.95, Math.max(9, W * 0.1), 4, sil);
     palm(Math.round(W * 0.07), HZ - 26, 1, 16, t, sil, glow);
     palm(Math.round(W * 0.95), HZ - 10, -1, 11, t + 1.3, sil, glow);
 
     ctx.putImageData(img, 0, 0);
+  }
+
+  // sailboat: travels from the right toward the palm island as the cycle progresses
+  const BOAT = [
+    "....s....",
+    "...ss|...",
+    "..sss|s..",
+    ".ssss|ss.",
+    "sssss|sss",
+    ".....|...",
+    "hhhhhhhhh",
+    ".hhhhhhh.",
+  ];
+  let boatShown = 0;
+  function boat(t, hull, p) {
+    const x0 = Math.round(W * 0.86 + (W * 0.24 - W * 0.86) * boatShown) - 4;
+    const y0 = HZ - 2 + (Math.sin(t * 2.2) > 0.3 ? 1 : 0);          // gentle bob
+    const sail = mix(mix([255, 240, 215], [255, 193, 94], 0.3 * (1 - p)), [120, 120, 170], 0.55 * p);
+    BOAT.forEach((row, dy) => [...row].forEach((ch, dx) => {
+      if (ch === "s") put(x0 + dx, y0 + dy, sail);
+      else if (ch !== ".") put(x0 + dx, y0 + dy, hull);
+    }));
+    const foam = mix(sail, hull, 0.4), w = Math.floor(t * 6) % 3;   // little wake behind the stern
+    put(x0 + 9 + w, y0 + 7, foam); put(x0 + 11 + w, y0 + 7, foam);
   }
 
   function island(cx, rw, rh, col) {
@@ -636,6 +663,9 @@
     shown += (target - shown) * (reduce ? 1 : 0.08);
     moonShown += ((view === "focus" ? 0 : 1) - moonShown) * (reduce ? 1 : 0.08);
     mtnShown += ((view === "long" ? 1 : 0) - mtnShown) * (reduce ? 1 : 0.06);
+    const voyage = finished || mode === "long" ? 1 : (today.cycle % settings.interval + (mode === "focus" ? progress() : 0)) / settings.interval;
+    if (voyage < boatShown - 0.2) boatShown = voyage;                 // new cycle: back to the start
+    boatShown += (voyage - boatShown) * (reduce ? 1 : 0.05);
     draw(reduce ? 0 : ts / 1000);
   }
 
