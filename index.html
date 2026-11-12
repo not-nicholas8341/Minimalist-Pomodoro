@@ -13,7 +13,7 @@
   gtag('config', 'G-FGCHLXFX7N');
 </script>
 <title>Pixel Sunset Pomodoro</title>
-<meta name="description" content="A free minimalist Pomodoro timer over an animated 8-bit pixel sunset. Customizable focus and break lengths, a sailboat that crosses the sea as you focus, and no sign-up.">
+<meta name="description" content="A minimalist pixel-art Pomodoro. Work in daylight, rest at night, and sail through a coast, forest, or storm lake. No sign-up.">
 <link rel="canonical" href="https://not-nicholas8341.github.io/Minimalist-Pomodoro/">
 <meta property="og:title" content="Pixel Sunset Pomodoro">
 <meta property="og:description" content="A free minimalist Pomodoro timer over an animated 8-bit pixel sunset.">
@@ -177,11 +177,38 @@
     width: 22px; height: 22px; background: var(--ink); border: 2px solid rgba(255, 244, 224, .5); cursor: pointer;
   }
   .group input[type="checkbox"]:checked { background: var(--sun); border-color: var(--sun); box-shadow: inset 0 0 0 3px var(--ink); }
+  .group input[type="range"] { grid-column: 2 / -1; width: 100%; accent-color: var(--sun); }
+  .scenery { border: 0; padding: 0; margin: 0; min-width: 0; }
+  .scenery legend { width: 100%; margin-bottom: 12px; }
+  .scene-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .scene-choice { position: relative; cursor: pointer; min-width: 0; }
+  .scene-choice input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .scene-card { display: flex; flex-direction: column; gap: 12px; padding: 5px 5px 12px; border: 2px solid #5a4c6b; background: var(--ink); color: var(--muted); font: 7px/1.5 var(--pixel); text-align: center; }
+  .scene-card svg { display: block; width: 100%; height: auto; image-rendering: pixelated; shape-rendering: crispEdges; }
+  .scene-choice:hover .scene-card { border-color: var(--paper); color: var(--paper); }
+  .scene-choice input:checked + .scene-card { border-color: var(--sun); color: var(--sun); box-shadow: 0 3px 0 #0b081a; }
+  .scene-choice input:focus-visible + .scene-card { outline: 3px solid var(--paper); outline-offset: 3px; }
+  .scene-note { margin: 12px 0 0; font: 11px/1.6 var(--sans); color: var(--muted); }
+  .weather-option { margin-top: 16px; }
+  .sheet-note { margin: -12px 0 0; font: 11px/1.6 var(--sans); color: var(--muted); }
+  dialog { max-height: calc(100dvh - 32px); overflow-y: auto; }
   .unit { font: 8px/1 var(--pixel); letter-spacing: .1em; color: var(--muted); }
   .sheet .btn.primary { align-self: stretch; min-width: 0; }
 
   @media (max-height: 560px) { .time { margin-top: 16px; } .label { margin-top: 16px; } }
-  @media (max-width: 420px) { .controls { gap: 8px; } .btn { min-width: 0; padding: 0 12px; } .btn.primary { min-width: 8em; } }
+  @media (max-width: 420px) {
+    .bar { grid-template-columns: 0 minmax(0, 1fr) 40px; gap: 8px; }
+    .gear { width: 40px; height: 40px; }
+    .mode { font-size: 9px; padding: 0 9px; }
+    .controls { gap: 8px; }
+    .btn { min-width: 0; padding: 0 12px; }
+    .btn.primary { min-width: 8em; }
+    .sheet { padding: 20px 16px; }
+    .group { grid-template-columns: minmax(0, 1fr) 64px 40px; gap: 10px; }
+    .group input[type="number"] { width: 64px; }
+    .group label { font-size: 9px; }
+    .scene-card { font-size: 6px; }
+  }
   @media (prefers-reduced-motion: reduce) { .btn, .toast { transition: none; } .label[data-state="paused"] { animation: none; } }
 </style>
 </head>
@@ -238,6 +265,31 @@
 <dialog id="settings" aria-labelledby="settingsTitle">
   <form class="sheet" id="settingsForm" method="dialog">
     <h2 id="settingsTitle">SETTINGS</h2>
+    <fieldset class="scenery">
+      <legend class="group-title">YOUR SCENERY</legend>
+      <div class="scene-options">
+        <label class="scene-choice">
+          <input type="radio" name="scenery" id="scene-coast" value="coast" aria-label="Coast">
+          <span class="scene-card"><svg viewBox="0 0 80 44" aria-hidden="true"><path fill="#718eac" d="M0 0h80v44H0z"/><path fill="#edd3a8" d="M0 17h80v27H0z"/><path fill="#ffe5a3" d="M32 11h12v2h2v10H30V13h2z"/><path fill="#80749b" d="m0 26 14-9 13 9 19-7 18 6 16-7v26H0z"/><path fill="#3a8f98" d="M0 29h80v15H0z"/><path fill="#ebcd9d" d="M31 32h14v1H31zm-4 4h22v1H27z"/><path fill="#254751" d="M6 44V22h2v22zM0 24l6-6 7 2 5 6-10-4-8 5zm64 20v-9h2v9z"/></svg>COAST</span>
+        </label>
+        <label class="scene-choice">
+          <input type="radio" name="scenery" id="scene-forest" value="forest" aria-label="Forest">
+          <span class="scene-card"><svg viewBox="0 0 80 44" aria-hidden="true"><path fill="#8ba8a1" d="M0 0h80v44H0z"/><path fill="#e1dcb2" d="M0 17h80v27H0z"/><path fill="#fff0bb" d="M47 10h10v2h2v8H45v-8h2z"/><path fill="#70948a" d="m0 28 16-13 18 10 18-11 28 12v18H0z"/><path fill="#4e8a81" d="M0 30h80v14H0z"/><path fill="#30594e" d="m10 9-8 15h4L0 34h20l-6-10h4zm58 5-7 13h3l-6 11h20l-6-11h3z"/><path fill="#203e3b" d="m3 19-7 14h3l-6 11h24l-6-11h3zm73 2-6 12h3l-6 11h20l-6-11h3z"/><path fill="#b8cbb0" d="M32 34h14v1H32zm7 5h12v1H39z"/></svg>FOREST</span>
+        </label>
+        <label class="scene-choice">
+          <input type="radio" name="scenery" id="scene-lake" value="lake" aria-label="Storm lake">
+          <span class="scene-card"><svg viewBox="0 0 80 44" aria-hidden="true"><path fill="#2b3a4f" d="M0 0h80v44H0z"/><path fill="#526875" d="M0 20h80v24H0z"/><path fill="#202d40" d="M0 0h80v9H0zm0 9h26v4H0zm35 0h45v7H35z"/><path fill="#3f5266" d="m0 30 13-16 8 8 8-5 12 13 20-18 19 15v17H0z"/><path fill="#284853" d="M0 30h80v14H0z"/><path fill="#d9ecf4" d="m58 10-7 8h5l-5 10 12-13h-6z"/><path fill="#93b1c2" d="m10 16-3 6h1l3-6zm14 9-3 6h1l3-6zm17-18-3 6h1l3-6zm27 17-3 6h1l3-6zM34 35h17v1H34zm23 4h10v1H57z"/><path fill="#172b38" d="M0 40h11v4H0zm3-9h1v13H3zm5 3h1v10H8zm61 7h11v3H69zm6-10h1v13h-1z"/></svg>STORM LAKE</span>
+        </label>
+      </div>
+      <p class="scene-note">Daylight for focus. Moonlight for breaks.<br>Your scenery changes; your voyage carries on.</p>
+      <div class="group weather-option">
+        <label for="s-sceneMotion">Animate scenery</label><input type="checkbox" id="s-sceneMotion">
+      </div>
+      <div class="group weather-option" id="stormControls" hidden>
+        <label for="s-stormMotion">Animate storm</label><input type="checkbox" id="s-stormMotion" aria-describedby="stormMotionNote">
+      </div>
+      <p class="scene-note" id="stormMotionNote" hidden>Falling rain and occasional lightning. Turn off to keep the storm still.</p>
+    </fieldset>
     <div class="group">
       <div class="group-title">DURATIONS</div>
       <label for="s-focus">Focus</label><input type="number" id="s-focus" min="1" max="180"><span class="unit">MIN</span>
@@ -251,6 +303,7 @@
       <label for="s-autoFocus">Auto-start focus</label><input type="checkbox" id="s-autoFocus">
       <label for="s-sound">End chime</label><input type="checkbox" id="s-sound">
     </div>
+    <p class="sheet-note">Your timer resumes after a refresh. The session count applies to your next voyage.</p>
     <button class="btn primary" value="close">DONE</button>
   </form>
 </dialog>
@@ -262,7 +315,8 @@
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
   const todayKey = () => new Date().toLocaleDateString("en-CA");
 
-  const settings = load("pps.settings", { focus: 25, short: 5, long: 15, interval: 4, autoBreak: true, autoFocus: false, sound: true });
+  const settings = load("pps.settings", { focus: 25, short: 5, long: 15, interval: 4, autoBreak: true, autoFocus: false, sound: true, scene: "coast", sceneMotion: true, stormMotion: true });
+  if (!["coast", "forest", "lake"].includes(settings.scene)) settings.scene = "coast";
   let today = load("pps.today", { date: todayKey(), sessions: 0, minutes: 0, cycle: 0 });
   const rollDay = () => { if (today.date !== todayKey()) today = { date: todayKey(), sessions: 0, minutes: 0, cycle: 0 }; };
   rollDay();
@@ -273,13 +327,36 @@
   // mode = the session the clock belongs to; view = the tab on screen (can "peek" while a session runs)
   let mode = "focus", view = "focus", running = false, endAt = 0, remaining = dur(mode);
   let finished = false;   // true after the long break that closes a cycle
+  let sessionMs = dur(mode);
+  let voyage = { sessions: 0, minutes: 0, target: settings.interval };
+  const restored = load("pps.session", {});
+  if (restored.version === 1 && Object.hasOwn(MODES, restored.mode)
+      && Number.isFinite(restored.remaining) && restored.remaining >= 0
+      && Number.isFinite(restored.sessionMs) && restored.sessionMs > 0
+      && restored.voyage && Number.isInteger(restored.voyage.sessions)
+      && restored.voyage.sessions >= 0 && restored.voyage.sessions <= 12
+      && Number.isInteger(restored.voyage.target) && restored.voyage.target >= 1 && restored.voyage.target <= 12
+      && Number.isFinite(restored.voyage.minutes) && restored.voyage.minutes >= 0
+      && (!restored.running || Number.isFinite(restored.endAt))) {
+    mode = view = restored.mode;
+    sessionMs = restored.sessionMs;
+    running = restored.running === true;
+    endAt = restored.endAt;
+    remaining = running ? Math.max(0, endAt - Date.now()) : restored.remaining;
+    voyage = restored.voyage;
+    finished = restored.finished === true;
+  }
+  function persistSession() {
+    save("pps.session", { version: 1, mode, running, endAt, remaining, sessionMs, voyage, finished });
+  }
+  function newVoyage() { voyage = { sessions: 0, minutes: 0, target: settings.interval }; finished = false; }
 
   const $ = id => document.getElementById(id);
   const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
-  const progress = () => 1 - remaining / dur(mode);
+  const progress = () => Math.max(0, Math.min(1, 1 - remaining / sessionMs));
 
   function render() {
-    const t = fmt(remaining), paused = !running && remaining < dur(mode), peek = view !== mode;
+    const t = fmt(remaining), paused = !running && remaining < sessionMs, peek = view !== mode;
     $("time").textContent = peek ? fmt(dur(view)) : t;
     $("time").classList.toggle("peek", peek);
     document.title = `${paused ? "❚❚ " : ""}${t} · ${MODES[mode]}`;
@@ -288,32 +365,32 @@
       b.setAttribute("aria-selected", b.dataset.mode === view);
       b.dataset.live = running && b.dataset.mode === mode;
     });
-    const done = finished || mode === "long" ? settings.interval : today.cycle % settings.interval;
+    const done = voyage.sessions;
     const state = peek ? "preview" : running ? (mode === "focus" ? "focusing" : "resting") : paused ? "paused" : "ready";
-    $("label").textContent = (peek ? MODES[view] : mode === "focus" ? `Session ${Math.min(done + 1, settings.interval)} of ${settings.interval}` : MODES[mode]) + " · " + state;
+    $("label").textContent = (peek ? MODES[view] : mode === "focus" ? `Session ${Math.min(done + 1, voyage.target)} of ${voyage.target}` : MODES[mode]) + " · " + state;
     $("label").dataset.state = state;
     $("hint").textContent = peek
       ? `${MODES[mode]} still running · ${t} left · click ${mode.toUpperCase()} to return`
       : mode === "focus"
-      ? (running ? "The sun sets and the boat sails as you focus" : `Sail the boat to the island · ${settings.interval - done} focus session${settings.interval - done === 1 ? "" : "s"} to go`)
-      : mode === "long" ? "The boat made it to the island · enjoy the long break" : "Short break: stretch, drink water";
-    $("dots").innerHTML = Array.from({ length: settings.interval }, (_, i) => `<span class="dot${i < done ? " on" : ""}"></span>`).join("");
+      ? (running ? "Daylight to focus · one little voyage at a time" : `Sail the boat to the island · ${voyage.target - done} focus session${voyage.target - done === 1 ? "" : "s"} to go`)
+      : mode === "long" ? (voyage.sessions >= voyage.target ? "The boat made it to the island · enjoy the long break" : "Take a longer rest · your voyage is saved") : "Short break: stretch, drink water";
+    $("dots").innerHTML = Array.from({ length: voyage.target }, (_, i) => `<span class="dot${i < done ? " on" : ""}"></span>`).join("");
     $("today").textContent = `Today · ${today.sessions} session${today.sessions === 1 ? "" : "s"} · ${today.minutes} min`;
   }
 
   function start() {
     if (running) return;
-    finished = false;
+    if (finished || (mode === "focus" && voyage.sessions >= voyage.target)) newVoyage();
     unlockAudio();
     running = true; endAt = Date.now() + remaining;
-    keepAwake(true); render();
+    keepAwake(true); persistSession(); render();
   }
   function pause() {
     if (!running) return;
     running = false; remaining = Math.max(0, endAt - Date.now());
-    keepAwake(false); render();
+    keepAwake(false); persistSession(); render();
   }
-  function reset() { running = false; remaining = dur(mode); keepAwake(false); render(); }
+  function reset() { running = false; sessionMs = dur(mode); remaining = sessionMs; keepAwake(false); persistSession(); render(); }
   // switching modes keeps the clock going if it was already running
   function setMode(m, keep = false) { mode = view = m; reset(); if (keep) start(); }
   function toggle() {
@@ -334,15 +411,19 @@
     const was = running;
     let next;
     if (mode === "focus") {
-      if (counted) { today.sessions++; today.minutes += settings.focus; }
-      today.cycle++;
-      next = today.cycle % settings.interval === 0 ? "long" : "short";
+      if (counted) {
+        today.sessions++;
+        today.minutes += sessionMs / 60000;
+        voyage.sessions++;
+        voyage.minutes += sessionMs / 60000;
+      }
+      next = voyage.sessions >= voyage.target ? "long" : "short";
     } else next = "focus";
     save("pps.today", today);
     if (counted) chime(mode === "focus");
     const from = mode;
-    if (from === "long" && today.cycle > 0 && today.cycle % settings.interval === 0) {
-      setMode("focus"); finished = true; render();     // end of the cycle: stop instead of looping
+    if (from === "long" && voyage.sessions >= voyage.target) {
+      setMode("focus"); finished = true; persistSession(); render();     // end of the cycle: stop instead of looping
       showDone();
       return;
     }
@@ -365,11 +446,11 @@
   $("skip").onclick = () => advance(false);
   // end-of-cycle screen: go again or stop
   function showDone() {
-    $("doneStats").textContent = `${settings.interval} focus sessions · ${settings.interval * settings.focus} min this cycle · ${today.minutes} min today`;
+    $("doneStats").textContent = `${voyage.sessions} focus sessions · ${Math.round(voyage.minutes)} min this cycle · ${Math.round(today.minutes)} min today`;
     $("done").hidden = false;
     $("again").focus();
   }
-  function closeDone() { $("done").hidden = true; finished = false; }
+  function closeDone() { $("done").hidden = true; newVoyage(); persistSession(); }
   $("again").onclick = () => { closeDone(); setMode("focus", true); toast("New cycle started. Session 1"); };
   $("stop").onclick = () => { closeDone(); render(); toast("Good work. Rest well"); };
 
@@ -398,10 +479,18 @@
   const dlg = $("settings");
   $("openSettings").onclick = () => {
     for (const k in LIMITS) $("s-" + k).value = settings[k];
-    for (const k of ["autoBreak", "autoFocus", "sound"]) $("s-" + k).checked = settings[k];
+    $("scene-" + settings.scene).checked = true;
+    $("stormControls").hidden = $("stormMotionNote").hidden = settings.scene !== "lake";
+    for (const k of ["autoBreak", "autoFocus", "sound", "sceneMotion", "stormMotion"]) $("s-" + k).checked = settings[k];
     dlg.showModal();
   };
   $("settingsForm").addEventListener("input", e => {
+    if (e.target.name === "scenery") {
+      settings.scene = e.target.value;
+      $("stormControls").hidden = $("stormMotionNote").hidden = settings.scene !== "lake";
+      save("pps.settings", settings);
+      return;
+    }
     const k = e.target.id.slice(2);
     if (k in LIMITS) {
       const v = Math.round(Number(e.target.value));
@@ -409,7 +498,8 @@
       settings[k] = Math.min(LIMITS[k][1], v);
     } else settings[k] = e.target.checked;
     save("pps.settings", settings);
-    if (!running) remaining = dur(mode);
+    if (!running && remaining === sessionMs) remaining = sessionMs = dur(mode);
+    persistSession();
     render();
   });
   dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
@@ -426,7 +516,9 @@
 
   // ---------- 8-bit chime ----------
   let ac = null;
-  function unlockAudio() { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); ac.resume(); } catch {} }
+  function unlockAudio() { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); ac.resume().catch(() => {}); } catch {} }
+  document.addEventListener("pointerdown", unlockAudio, { once: true });
+  document.addEventListener("keydown", unlockAudio, { once: true });
   function chime(up) {
     if (!settings.sound || !ac) return;
     const notes = up ? [523.25, 659.25, 783.99, 1046.5] : [1046.5, 783.99, 659.25, 523.25];
@@ -450,26 +542,48 @@
   const BAYER = [[0.125, 0.625], [0.875, 0.375]];
   const hash = (a, b, c = 0) => { let n = Math.imul(a, 374761393) + Math.imul(b, 668265263) + Math.imul(c, 1274126177); n = Math.imul(n ^ (n >>> 13), 1274126177); return ((n ^ (n >>> 16)) >>> 0) / 4294967296; };
 
-  // sky bands top -> horizon, keyed by phase (0 golden hour .. 1 night)
-  const SKY = [
-    [0.00, ["#3b2a6b", "#6a3a8c", "#b04e8f", "#e8706f", "#f7a65a", "#ffd27a"]],
-    [0.55, ["#1f1847", "#3d2160", "#7a2b6e", "#c43d63", "#ee6b4d", "#f9a14a"]],
-    [0.85, ["#141337", "#24205a", "#3f2a72", "#6b3378", "#a5486e", "#d86a5a"]],
-    [1.00, ["#0b0b24", "#111433", "#191c46", "#222558", "#2b2d66", "#363874"]],
-  ].map(([p, c]) => [p, c.map(hex)]);
-  const FAR = [[0, hex("#8a3f78")], [0.6, hex("#4a2660")], [1, hex("#1a1940")]];
-  const NEAR = [[0, hex("#4a2350")], [0.6, hex("#2a1640")], [1, hex("#0b0a1e")]];
-  const keyed = (keys, p) => {
-    for (let i = 0; i < keys.length - 1; i++) {
-      const [p0, a] = keys[i], [p1, b] = keys[i + 1];
-      if (p <= p1) { const t = clamp((p - p0) / (p1 - p0)); return Array.isArray(a[0]) ? a.map((c, j) => mix(c, b[j], t)) : mix(a, b, t); }
+  // Each place has the same day/night rhythm. All artwork stays on the
+  // original low-resolution canvas: no image downloads or new dependencies.
+  const SCENES = {
+    coast: {
+      sky: ["#466b98", "#718eac", "#a6b2c1", "#d4bdba", "#edc6a8", "#f5d9ac"],
+      night: ["#10132f", "#191d40", "#292b54", "#38395f", "#4b486e", "#69617e"],
+      far: ["#8b829f", "#303050"], near: ["#59647d", "#191d38"],
+      water: ["#55969f", "#234b70"], darkWater: ["#313f64", "#141c38"],
+      foliage: ["#254951", "#11172d"], light: ["#6f8874", "#52536d"]
+    },
+    forest: {
+      sky: ["#456775", "#64868c", "#8ba8a1", "#b3bca6", "#d5cdae", "#ece0b5"],
+      night: ["#0d1c2c", "#152b38", "#223f48", "#304e54", "#405d60", "#627574"],
+      far: ["#78978c", "#2a454d"], near: ["#4d7467", "#19343a"],
+      water: ["#659b8c", "#254f53"], darkWater: ["#2c5157", "#102a36"],
+      foliage: ["#234c43", "#0d252d"], light: ["#719772", "#395b58"]
+    },
+    lake: {
+      sky: ["#2b3a4f", "#35485d", "#455b6c", "#536c79", "#69808a", "#829499"],
+      night: ["#090f1d", "#101c2c", "#172737", "#203345", "#2b4252", "#3c5661"],
+      far: ["#4c6676", "#263e50"], near: ["#304957", "#162b39"],
+      water: ["#3e626d", "#1c3549"], darkWater: ["#243f50", "#0c1f30"],
+      foliage: ["#1b3540", "#0b1c29"], light: ["#5a7780", "#34515d"]
     }
-    return keys[keys.length - 1][1];
   };
+  for (const scene of Object.values(SCENES)) {
+    for (const key of Object.keys(scene)) scene[key] = scene[key].map(hex);
+  }
+  let landscape = settings.scene, landscapeMix = 1, stormTime = 0, rainTime = 0, sceneTime = 0;
+  let previousPalette = SCENES[landscape];
+  function paletteAt(a, b, f) {
+    return Object.fromEntries(Object.keys(a).map(k => [k, a[k].map((c, i) => mix(c, b[k][i], f))]));
+  }
+  function scenePalette() { return paletteAt(previousPalette, SCENES[landscape], landscapeMix); }
 
   function build() {
-    const s = Math.min(innerWidth, innerHeight) / 90;      // square pixels: short side = 90 px
-    W = Math.round(innerWidth / s); H = Math.round(innerHeight / s); HZ = Math.round(H * 0.667);
+    // Embedded previews can open before their viewport has a size. Draw a
+    // fallback scene now; the resize event rebuilds it when the pane appears.
+    const width = innerWidth || document.documentElement.clientWidth || 160;
+    const height = innerHeight || document.documentElement.clientHeight || 90;
+    const s = Math.max(1, Math.min(width, height)) / 90;
+    W = Math.max(1, Math.round(width / s)); H = Math.max(1, Math.round(height / s)); HZ = Math.round(H * 0.667);
     cv.width = W; cv.height = H;
     img = ctx.createImageData(W, H); px = img.data;
     stars = Array.from({ length: Math.round(W * 0.35) }, (_, i) => ({ x: Math.floor(hash(i, 1) * W), y: Math.floor(hash(i, 2) * (HZ - 14)), r: hash(i, 3), k: Math.floor(hash(i, 4) * 40) }));
@@ -491,7 +605,7 @@
     const i = (y * W + x) * 4;
     px[i] = c[0]; px[i + 1] = c[1]; px[i + 2] = c[2]; px[i + 3] = 255;
   }
-  const get = (x, y) => { const i = ((y | 0) * W + (x | 0)) * 4; return [px[i], px[i + 1], px[i + 2]]; };
+  const get = (x, y) => { x = Math.max(0, Math.min(W - 1, x | 0)); y = Math.max(0, Math.min(H - 1, y | 0)); const i = (y * W + x) * 4; return [px[i], px[i + 1], px[i + 2]]; };
 
   // solid bands with a short dithered seam between them
   function bandColor(bands, f, x, y) {
@@ -500,24 +614,34 @@
     return q > BAYER[y & 1][x & 1] ? bands[i + 1] : bands[i];
   }
 
-  let shown = 0, moonShown = 0, mtnShown = 0;
-  function draw(t) {
-    const p = shown, tick = Math.floor(t * 8);
-    const sky = keyed(SKY, p);
+  let shown = view === "focus" ? 0 : 1, moonShown = shown, mtnShown = view === "long" ? 1 : 0;
+  const daylight = { from: shown, to: shown, elapsed: 0, duration: 12 };
+  const smoothstep = u => { u = clamp(u); return u * u * u * (u * (u * 6 - 15) + 10); };
+  function draw(t, weatherTime, rainClock) {
+    const p = shown;
+    const scene = scenePalette(), sky = scene.sky.map((c, i) => mix(c, scene.night[i], p));
+    // Pass through a warm dusk/dawn instead of fading straight to gray-blue.
+    if (landscape !== "lake") {
+      const twilight = Math.sin(p * Math.PI) ** 2;
+      const colors = [[174, 117, 148], [216, 139, 128], [243, 174, 132]];
+      for (let i = 3; i < 6; i++) sky[i] = mix(sky[i], colors[i - 3], twilight * 0.55);
+    }
 
     // sky
     for (let y = 0; y < HZ; y++) for (let x = 0; x < W; x++) put(x, y, bandColor(sky, y / (HZ - 1), x, y));
 
     // stars
-    const starA = clamp((p - 0.55) / 0.35);
+    const starA = landscape === "lake" ? 0 : clamp((p - 0.55) / 0.35);
     for (const s of stars) {
-      if (s.r > starA || (tick + s.k) % 37 === 0) continue;
-      put(s.x, s.y, mix(get(s.x, s.y), [255, 244, 214], s.r < 0.15 ? 1 : 0.65));
+      if (s.r > starA) continue;
+      const twinkle = 0.55 + 0.45 * (Math.sin(t * 0.8 + s.k) + 1) / 2;
+      const visibility = clamp((starA - s.r) * 5);
+      put(s.x, s.y, mix(get(s.x, s.y), [255, 244, 214], (s.r < 0.15 ? 1 : 0.65) * twinkle * visibility));
     }
 
     // moon (breaks)
-    if (moonShown > 0.02) {
-      const mx = Math.round(W * 0.84), my = HZ - 32, r = 5;
+    if (moonShown > 0.02 && landscape !== "lake") {
+      const mx = Math.round(W * 0.84), my = Math.round(HZ - 12 - 20 * moonShown), r = 5;
       for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
         if (dx * dx + dy * dy > r * r + 2) continue;
         if ((dx - 2) * (dx - 2) + (dy + 1) * (dy + 1) <= r * r - 2) continue;
@@ -526,31 +650,33 @@
     }
 
     // clouds
-    for (const c of clouds) {
+    if (landscape !== "lake") for (const c of clouds) {
       const cx = ((c.x + t * c.v) % (W + 50)) - 25, row = sky[Math.min(5, Math.floor(c.y / HZ * 6) + 1)];
-      const lit = mix(row, [255, 214, 170], 0.45 * (1 - p)), dark = mix(row, [30, 16, 50], 0.25);
+      const lit = mix(row, [255, 240, 215], 0.6 * (1 - p)), dark = mix(row, [30, 26, 50], 0.12 + p * 0.08);
       for (let i = 0; i < c.len; i++) put(cx + i, c.y, lit);
       for (let i = -3; i < c.len + 3; i++) put(cx + i, c.y + 1, dark);
       for (let i = 3; i < c.len * 0.6; i++) put(cx + i, c.y - 1, lit);
     }
 
     // sun
-    const r = 11, sx = Math.round(W / 2), sy = Math.round(HZ - 14 + p * 27);
-    const sunTop = hex("#fff4b0"), sunBot = mix(hex("#ff9a4a"), hex("#ff5a4a"), p);
-    for (let dy = -r - 3; dy <= r + 3; dy++) for (let dx = -r - 3; dx <= r + 3; dx++) {
+    const r = landscape === "lake" ? 8 : 10, sx = Math.round(W / 2), sy = Math.round(HZ - 16 + p * 33);
+    const sunTop = mix(hex("#fff4b0"), hex("#ffc18b"), p), sunBot = mix(hex("#ff9a4a"), hex("#ff5a4a"), p);
+    if (landscape !== "lake") for (let dy = -r - 3; dy <= r + 3; dy++) for (let dx = -r - 3; dx <= r + 3; dx++) {
       const y = sy + dy, x = sx + dx, d2 = dx * dx + dy * dy;
       if (y >= HZ) continue;
       if (d2 <= r * r + 1) {
         if (dy >= 2 && (dy - 2) % 4 < (dy > 7 ? 2 : 1)) continue;   // stripe cut-outs
-        put(x, y, mix(sunTop, sunBot, clamp((dy + r) / (2 * r))));
+        const sunlight = mix(sunTop, sunBot, clamp((dy + r) / (2 * r)));
+        put(x, y, landscape === "lake" ? mix(get(x, y), sunlight, 0.35) : sunlight);
       } else if (d2 <= (r + 3) * (r + 3) && BAYER[y & 1][x & 1] < 0.4 * (1 - p * 0.6)) {
         put(x, y, mix(get(x, y), sunTop, 0.3));                          // dithered glow
       }
     }
+    if (landscape === "lake") stormSky(weatherTime, p);
 
     // birds
     const birdA = 1 - clamp((p - 0.6) / 0.2);
-    if (birdA > 0.5) for (const b of birds) {
+    if (birdA > 0.5 && landscape === "coast") for (const b of birds) {
       const bx = Math.round(((b.x + t * b.v) % (W + 20)) - 10), by = b.y + Math.round(Math.sin(t + b.k));
       const up = Math.floor(t * 4 + b.k) % 2, ink = [42, 22, 64];
       put(bx, by, ink); put(bx - 1, by - 1, ink); put(bx + 1, by - 1, ink);
@@ -558,18 +684,33 @@
     }
 
     // mountains
-    const far = keyed(FAR, p), near = keyed(NEAR, p), rim = mix(far, sunTop, 0.35 * (1 - p));
-    const snow = mix(far, [226, 222, 255], 0.55 * mtnShown);
+    const far = mix(...scene.far, p), near = mix(...scene.near, p), rim = mix(far, landscape === "lake" ? [162, 188, 202] : sunTop, (landscape === "lake" ? 0.1 : 0.18) * (1 - p));
+    const snow = mix(far, [226, 222, 255], (landscape === "lake" ? 0.12 : 0.55) * mtnShown);
     for (let x = 0; x < W; x++) {
-      const fh = farR[x] * (1 + mtnShown * 1.8), ft = Math.round(HZ - fh);   // long break: mountains rise
+      const ridge = landscape === "lake" ? 10 + 10 * Math.abs(Math.sin(x * 0.072 + 1.5)) + 4 * Math.abs(Math.sin(x * 0.19))
+        : landscape === "forest" ? 5 + 3 * Math.sin(x * 0.037 + 1) + 2 * Math.sin(x * 0.08) : farR[x];
+      const fh = ridge * (1 + mtnShown * (landscape === "lake" ? 0.5 : 1.8)), ft = Math.round(HZ - fh);
       for (let y = ft; y < HZ; y++) put(x, y, y === ft ? rim : (fh > 24 && y < ft + 1 + (fh - 24) / 3 ? snow : far));
       for (let y = Math.round(HZ - nearR[x] * (1 + mtnShown * 1.4)); y < HZ; y++) put(x, y, near);
     }
+    // Two overlapping treelines make a wooded valley rather than bare hills.
+    if (landscape === "forest") {
+      for (let x = -3; x < W + 4; x += 3) {
+        const base = HZ - 3 - Math.round(2 * Math.sin(x * 0.08));
+        const h = 7 + Math.floor(hash(x, 51) * 10);
+        fir(x, base, h, mix(near, far, 0.65), mix(far, near, 0.25), t * 0.5);
+      }
+      for (let x = -2; x < W + 4; x += 4) {
+        const edge = Math.pow(Math.abs(x / W - 0.5) * 2, 1.4);
+        const h = 6 + Math.floor(hash(x, 52) * 7 + edge * 9);
+        fir(x, HZ + 2, h, near, mix(near, far, 0.4), t * 0.6);
+      }
+    }
 
     // sea
-    const seaTop = mix(sky[3], [20, 10, 40], 0.4), seaBot = mix(sky[0], [6, 4, 20], 0.6);
+    const seaTop = mix(scene.water[0], scene.darkWater[0], p), seaBot = mix(scene.water[1], scene.darkWater[1], p);
     const seaBands = [0, 1, 2, 3].map(i => mix(seaTop, seaBot, i / 3));
-    const sunVis = clamp((HZ - (sy - r)) / (2 * r)) * (sy - r < HZ ? 1 : 0);
+    const sunVis = clamp((HZ - (sy - r)) / (2 * r)) * (sy - r < HZ ? 1 : 0) * (landscape === "lake" ? 0 : 1);
     for (let y = HZ; y < H; y++) {
       const d = (y - HZ) / (H - HZ);
       for (let x = 0; x < W; x++) put(x, y, bandColor(seaBands, d, x, y));
@@ -581,28 +722,341 @@
       }
       // sun reflection
       if (sunVis > 0) {
-        const hw = Math.round(r * (0.6 + d * 0.9) * sunVis), refl = mix(sunBot, sunTop, 0.4 * (1 - d));
-        if ((y + (tick >> 1)) % 2 === 0) for (let x = sx - hw; x <= sx + hw; x++)
-          if (hash(x >> 1, y, tick >> 1) > 0.35) put(x, y, mix(get(x, y), refl, 0.85 - d * 0.4));
+        const hw = Math.round((r * (0.6 + d * 0.9) + Math.sin(t * 0.25 + y * 0.7)) * sunVis);
+        const center = sx + Math.round(Math.sin(t * 0.18 + y * 0.4) * 0.75);
+        const refl = mix(sunBot, sunTop, 0.4 * (1 - d));
+        const shimmer = 0.78 + Math.sin(t * 0.28 + y * 0.35) * 0.12;
+        if (y % 2 === 0) for (let x = center - hw; x <= center + hw; x++)
+          if (hash(x >> 1, y, 41) > 0.3) put(x, y, mix(get(x, y), refl, (0.85 - d * 0.4) * shimmer * sunVis));
       }
       // moon reflection
-      if (moonShown > 0.02) {
+      if (moonShown > 0.02 && landscape !== "lake") {
         const mx = Math.round(W * 0.84), hw = 2 + Math.round(d * 4);
-        if ((y + (tick >> 1)) % 3 === 0) for (let x = mx - hw; x <= mx + hw; x++)
-          if (hash(x, y, tick >> 2) > 0.4) put(x, y, mix(get(x, y), [244, 230, 196], 0.5 * moonShown));
+        const shimmer = 0.42 + Math.sin(t * 0.22 + y * 0.4) * 0.08;
+        if (y % 3 === 0) for (let x = mx - hw; x <= mx + hw; x++)
+          if (hash(x, y, 42) > 0.4) put(x, y, mix(get(x, y), [244, 230, 196], shimmer * moonShown));
       }
     }
 
     // foreground islands + palms (silhouettes with a sun / moon rim light)
-    const sil = mix(near, [6, 3, 14], 0.45);
-    const glow = mix(mix(sil, sunBot, 0.3 * (1 - p)), [140, 140, 210], 0.18 * moonShown);
-    boat(t, sil, p);
-    island(W * 0.06, Math.max(14, W * 0.16), 6, sil);
-    island(W * 0.95, Math.max(9, W * 0.1), 4, sil);
-    palm(Math.round(W * 0.07), HZ - 26, 1, 16, t, sil, glow);
-    palm(Math.round(W * 0.95), HZ - 10, -1, 11, t + 1.3, sil, glow);
+    const sil = mix(...scene.foliage, p), glow = mix(...scene.light, p);
+    if (landscape === "forest") {
+      riverMist(t, p);
+      forestBanks(t, sil, glow, p);
+    }
+    if (landscape === "coast") coastSurf(t, p);
+    if (landscape !== "lake") riverFish(t, p);
+    if (landscape === "lake") stormWater(weatherTime, p);
+    if (landscape !== "forest") boat(t, sil, p);
+    if (landscape !== "coast") {
+      island(W * 0.06, Math.max(14, W * 0.16), 6, sil);
+      island(W * 0.95, Math.max(9, W * 0.1), 4, sil);
+    }
+    if (landscape === "coast") {
+      palm(Math.round(W * 0.07), HZ - 26, 1, 16, t, sil, glow);
+      palm(Math.round(W * 0.95), HZ - 10, -1, 11, t + 1.3, sil, glow);
+    } else if (landscape === "forest") {
+      forestGrove(t, sil, glow, near, p);
+      forestLeaves(t, p);
+      boat(t, sil, p);
+      forestFireflies(t, p);
+    } else {
+      reeds(W * 0.055, H - 2, sil, glow);
+      reeds(W * 0.95, H, sil, glow);
+      rain(rainClock, p);
+    }
 
     ctx.putImageData(img, 0, 0);
+  }
+
+  // Low riverbanks and mossy shorelines give the forest its own silhouette.
+  function forestBanks(t, col, rim, p) {
+    for (let y = HZ + 1; y < H; y++) {
+      const d = (y - HZ) / (H - HZ);
+      const left = Math.round(W * (0.025 + d * d * 0.19) + Math.sin(y * 0.22) * 2);
+      const right = Math.round(W * (0.98 - d * d * 0.12) + Math.sin(y * 0.18 + 2) * 2);
+      for (let x = 0; x <= left; x++) put(x, y, col);
+      for (let x = right; x < W; x++) put(x, y, col);
+      put(left, y, rim); put(right, y, rim);
+      if (y % 4 === 0) {
+        put(left + 2, y, mix(rim, [180, 202, 165], 0.2 * (1 - p)));
+        put(right - 2, y, rim);
+      }
+    }
+  }
+
+  function forestGrove(t, col, rim, distant, p) {
+    // Trees rooted along each bank form several depths, with a clear passage
+    // through the middle for the sun, moon, boat, and timer.
+    for (let side = 0; side < 2; side++) {
+      for (let i = 0; i < 7; i++) {
+        const u = side ? 0.985 + i * 0.025 : 0.005 + i * 0.02;
+        const x = Math.round(W * u);
+        const base = HZ + 8 + Math.round(hash(i, side + 110) * 9);
+        const h = 20 + Math.round(hash(i, side + 112) * 18);
+        fir(x, base, h, mix(col, distant, 0.55), mix(rim, distant, 0.6), t);
+      }
+    }
+    const front = [
+      [-0.025, 0.82, 0], [0.035, 0.69, 1], [0.10, 0.54, 0], [0.17, 0.37, 1],
+      [0.90, 0.28, 0], [1.0, 0.61, 2], [1.10, 0.81, 0]
+    ];
+    for (const [x, ratio, lift] of front) {
+      const h = Math.min(86, Math.round(H * ratio));
+      fir(Math.round(W * x), H - lift, h, col, rim, t);
+    }
+    // Tiny moss patches and ferns break up the banks without adding UI clutter.
+    for (let i = 0; i < Math.round(W * 0.22); i++) {
+      const side = i % 2;
+      const x = Math.round(W * (side ? 0.88 + hash(i, 117) * 0.12 : hash(i, 117) * 0.17));
+      const y = H - 2 - Math.floor(hash(i, 118) * 9);
+      const moss = mix(col, rim, 0.4 + hash(i, 119) * 0.25);
+      put(x, y, moss); put(x - 1, y + 1, moss); put(x + 1, y + 1, moss);
+    }
+  }
+
+  function forestFireflies(t, p) {
+    const night = clamp((p - 0.2) / 0.8);
+    if (!night) return;
+    const count = Math.max(32, Math.min(64, Math.round(W * 0.32)));
+    for (let i = 0; i < count; i++) {
+      const overWater = i % 5 === 0;
+      const u = overWater ? 0.24 + hash(i, 61) * 0.51
+        : i % 2 ? 0.025 + hash(i, 61) * 0.24 : 0.75 + hash(i, 61) * 0.23;
+      const x = Math.round(W * u + Math.sin(t * (0.3 + hash(i, 63) * 0.2) + i * 2) * 4 + Math.sin(t * 0.9 + i) * 1.5);
+      const base = overWater ? HZ + 5 + hash(i, 62) * 12 : HZ - 7 + hash(i, 62) * (H - HZ - 1);
+      const y = Math.round(base + Math.cos(t * 0.4 + i * 1.7) * 3);
+      const pulse = 0.18 + 0.82 * Math.pow((Math.sin(t * (0.6 + hash(i, 64) * 0.5) + i * 2.4) + 1) / 2, 1.5);
+      const a = pulse * night, light = i % 3 ? [232, 239, 153] : [255, 220, 137];
+      // A crisp one-pixel body and a soft, cross-shaped pixel halo.
+      for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]])
+        put(x + dx, y + dy, mix(get(x + dx, y + dy), light, a * 0.18));
+      put(x, y, mix(get(x, y), light, a));
+      if (overWater && i % 2 === 0) put(x, y + 4, mix(get(x, y + 4), light, a * 0.2));
+    }
+  }
+
+  function forestLeaves(t, p) {
+    const leaf = mix([170, 182, 107], [68, 106, 92], p);
+    for (let i = 0; i < 9; i++) {
+      const span = H - HZ + 25;
+      const y = HZ - 22 + (hash(i, 126) * span + t * (1.8 + hash(i, 127) * 1.4)) % span;
+      const bank = i % 2 ? W * 0.14 : W * 0.88;
+      const x = Math.round(bank + Math.sin(t * 0.65 + i * 2) * 5 + Math.sin(y * 0.2 + i) * 2);
+      put(x, y, mix(get(x, y), leaf, 0.75));
+      put(x + (Math.sin(t * 2 + i) > 0 ? 1 : 0), y + 1, mix(get(x, y + 1), leaf, 0.5));
+    }
+    if (p < 0.6) for (let i = 0; i < 2; i++) {
+      const x = Math.round(W * (i ? 0.76 : 0.24) + Math.sin(t * 0.55 + i * 4) * 5);
+      const y = HZ - 2 + Math.round(Math.cos(t * 0.7 + i * 2) * 4);
+      const color = mix([240, 202, 131], [102, 144, 124], p);
+      put(x, y, color);
+      const wing = Math.floor(t * 6 + i) % 2;
+      put(x - 1, y - wing, color); put(x + 1, y - wing, color);
+    }
+  }
+
+  function riverMist(t, p) {
+    for (let i = 0; i < 4; i++) {
+      const x = Math.round(W * 0.23 + ((hash(i, 131) * W * 0.5 + t * (0.7 + i * 0.2)) % (W * 0.55)));
+      const y = HZ + 2 + i * 3, length = 7 + i * 3;
+      const strength = (0.08 + p * 0.05) * (0.6 + Math.sin(t * 0.4 + i) * 0.3);
+      for (let dx = -length; dx <= length; dx++) {
+        const a = strength * (1 - Math.abs(dx) / (length + 1));
+        put(x + dx, y, mix(get(x + dx, y), [164, 193, 180], a));
+      }
+    }
+  }
+
+  function coastSurf(t, p) {
+    const shore = x => Math.round(H - 6 - 14 * Math.pow(Math.abs(x / W - 0.52) * 2, 1.6) + 1.5 * Math.sin(x * 0.045));
+    const sand = mix([232, 198, 149], [56, 61, 82], p);
+    const shadow = mix([205, 168, 123], [39, 48, 69], p);
+    const wet = mix([163, 166, 139], [44, 65, 82], p);
+    const shallow = mix([104, 174, 168], [46, 81, 104], p);
+    const foam = mix([233, 237, 205], [137, 167, 183], p);
+    // The sand curves around an open bay. A darker wet band catches the light
+    // while each incoming swell washes over it and drains back into the sea.
+    for (let x = 0; x < W; x++) {
+      const edge = shore(x);
+      for (let y = Math.max(HZ + 3, edge - 8); y < H; y++) {
+        if (y < edge) {
+          const a = (1 - (edge - y) / 9) * 0.5;
+          put(x, y, mix(get(x, y), shallow, a));
+        } else {
+          const d = y - edge;
+          const c = d < 3 ? mix(wet, sand, d / 5) : sand;
+          put(x, y, hash(x, y, 143) > 0.93 ? mix(c, shadow, 0.3) : c);
+        }
+      }
+      const surge = (Math.sin(t * 0.7 + x * 0.018) + 1) / 2;
+      const wash = Math.round(edge - 1 + surge * 4);
+      for (let y = edge - 1; y <= wash; y++) {
+        const sheen = mix(wet, shallow, 0.4 + surge * 0.25);
+        put(x, y, mix(get(x, y), sheen, 0.65));
+      }
+      // Long, irregular foam lines break along the curved shore, rather than
+      // sliding sideways like the offshore glints.
+      for (let i = 0; i < 3; i++) {
+        const phase = (t * 0.11 + i / 3) % 1;
+        const y = Math.round(edge - 10 + phase * 13 + Math.sin(x * 0.17 + i * 2 + t * 0.25));
+        const strength = Math.sin(phase * Math.PI) * 0.82;
+        if (hash(Math.floor(x / 3), i, Math.floor(t * 0.8)) > 0.16) {
+          put(x, y, mix(get(x, y), foam, strength));
+          if ((x + i) % 4 < 2) put(x, y + 1, mix(get(x, y + 1), foam, strength * 0.35));
+        }
+      }
+      if (x % 3 === 0) put(x, wash, mix(get(x, wash), foam, surge * 0.45));
+    }
+    // Small, fixed beach finds: shells, pebbles, a starfish, and driftwood.
+    for (let i = 0; i < Math.max(14, Math.round(W / 7)); i++) {
+      const x = Math.floor(hash(i, 144) * W), edge = shore(x);
+      const y = edge + 5 + Math.floor(hash(i, 145) * Math.max(1, H - edge - 7));
+      if (y >= H - 1) continue;
+      const c = i % 3 ? mix([247, 225, 183], [108, 120, 139], p) : mix([139, 145, 133], [40, 53, 73], p);
+      put(x, y, c);
+      if (i % 4 === 0) { put(x + 1, y, c); put(x, y - 1, mix(c, sand, 0.4)); }
+    }
+    const starX = Math.round(W * 0.23), starY = H - 3, star = mix([204, 127, 95], [95, 80, 101], p);
+    for (const [dx, dy] of [[0, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]]) put(starX + dx, starY + dy, star);
+    const wood = mix([133, 103, 83], [35, 42, 60], p);
+    for (let i = 0; i < 6; i++) put(W * 0.84 + i, H - 3 - Math.floor(i / 3), wood);
+    for (const u of [0.035, 0.1, 0.94, 0.98]) {
+      const x = Math.round(W * u), y = H - 1;
+      const grass = mix([101, 123, 83], [31, 57, 62], p);
+      for (let d = 0; d < 4; d++) {
+        put(x, y - d, grass); put(x - Math.floor(d / 2), y - d, grass); put(x + Math.floor(d / 2), y - d, grass);
+      }
+    }
+  }
+
+  function riverFish(t, p) {
+    const phase = (t + 7) % 19;
+    if (phase > 1.8) return;
+    const x = Math.round(W * 0.39 + phase * 5), waterline = HZ + 9;
+    const c = mix([194, 202, 158], [112, 152, 163], p);
+    if (phase < 1.2) {
+      const y = waterline - Math.round(Math.sin(phase / 1.2 * Math.PI) * 5);
+      put(x, y, c); put(x + 1, y, c); put(x - 1, y + 1, mix(c, [30, 65, 65], 0.35));
+    } else {
+      const w = Math.round((phase - 1.2) * 6), a = (1.8 - phase) * 0.6;
+      for (let dx = -w; dx <= w; dx++) put(x + dx, waterline + (Math.abs(dx) === w ? 0 : 1), mix(get(x + dx, waterline + 1), c, a));
+    }
+  }
+
+  function lightningAt(t) {
+    if (!settings.stormMotion) return { strength: 0, x: 0, cycle: 0 };
+    const elapsed = Math.max(0, t), cycle = Math.floor(elapsed / 13);
+    const phase = elapsed % 13 - 2;
+    return {
+      strength: phase >= 0 && phase < 0.85 ? Math.pow(1 - phase / 0.85, 1.4) : 0,
+      x: Math.round(W * (cycle % 2 ? 0.2 : 0.77)), cycle
+    };
+  }
+
+  function stormSky(t, p) {
+    const upper = mix([33, 47, 65], [9, 18, 31], p);
+    const lower = mix([43, 60, 77], [16, 30, 45], p);
+    const drift = t * 1.8;
+    // Two heavy, irregular cloud shelves; the upper one blankets the sky.
+    for (let x = 0; x < W; x++) {
+      const edge = Math.round(HZ * 0.21 + Math.sin((x + drift) * 0.08) * 3 + Math.sin((x + drift) * 0.23) * 2);
+      for (let y = 0; y <= edge; y++) put(x, y, y > edge - 2 ? lower : upper);
+      const shelf = Math.round(HZ * 0.49 + Math.sin((x + drift * 1.6) * 0.065 + 2) * 3);
+      if (Math.sin((x + drift) * 0.035 + 0.7) > -0.2) {
+        for (let y = shelf - 3; y <= shelf; y++) put(x, y, mix(get(x, y), lower, 0.7));
+      }
+    }
+    const bolt = lightningAt(t);
+    if (!bolt.strength) return;
+    // Local cloud glow and a single fading bolt, never a full-screen strobe.
+    for (let y = 5; y < HZ * 0.6; y++) for (let x = bolt.x - 18; x <= bolt.x + 18; x++) {
+      const vertical = Math.sin((y - 5) / (HZ * 0.6 - 5) * Math.PI);
+      const a = Math.max(0, 1 - Math.abs(x - bolt.x) / 18) * vertical * bolt.strength * 0.22;
+      put(x, y, mix(get(x, y), [174, 197, 224], a));
+    }
+    const start = Math.round(HZ * 0.24), end = HZ - 2;
+    let previousX = bolt.x;
+    for (let y = start; y < end; y++) {
+      const step = Math.floor((y - start) / 4);
+      const x = bolt.x + Math.round((hash(step, bolt.cycle + 90) - 0.5) * 9 + (y - start) * 0.1);
+      for (let dx = -2; dx <= 2; dx++) put(x + dx, y, mix(get(x + dx, y), [152, 184, 224], bolt.strength * (dx === 0 ? 0.8 : 0.18)));
+      if (step > 0 && (y - start) % 4 === 0) {
+        for (let lx = Math.min(x, previousX); lx <= Math.max(x, previousX); lx++) put(lx, y, mix(get(lx, y), [218, 235, 255], bolt.strength * 0.8));
+      }
+      put(x, y, mix(get(x, y), [229, 242, 255], bolt.strength));
+      if (y > start + 11 && y < start + 21) {
+        const branchX = x - Math.round((y - start - 11) * 0.8);
+        put(branchX, y, mix(get(branchX, y), [197, 221, 249], bolt.strength * 0.6));
+      }
+      previousX = x;
+    }
+  }
+
+  function stormWater(t, p) {
+    const foam = mix([127, 161, 171], [77, 116, 139], p), bolt = lightningAt(t);
+    for (let y = HZ + 2; y < H; y += 3) {
+      const d = (y - HZ) / (H - HZ);
+      for (let k = 0; k < Math.ceil(W / 18); k++) {
+        const x = Math.round(((hash(y, k, 95) * W - t * (6 + d * 9)) % W + W) % W);
+        const length = 2 + Math.floor(hash(y, k, 96) * (3 + d * 4));
+        for (let dx = 0; dx < length; dx++) put(x + dx, y, mix(get(x + dx, y), foam, 0.28 + d * 0.15));
+        put(x + length - 1, y - 1, mix(get(x + length - 1, y - 1), foam, 0.22));
+      }
+      if (bolt.strength) for (let dx = -3; dx <= 3; dx++) {
+        const x = bolt.x + dx + Math.round(Math.sin(y * 1.7) * 3);
+        put(x, y, mix(get(x, y), [190, 215, 237], bolt.strength * 0.45));
+      }
+    }
+  }
+
+  function fir(cx, base, height, col, rim, t = 0) {
+    const top = Math.round(base - height);
+    const swayAt = y => Math.round(Math.sin(t * 0.65 + cx * 0.12) * Math.min(2, height * 0.035) * ((base - y) / height) ** 2);
+    for (let y = top; y < base; y++) { const x = cx + swayAt(y); put(x, y, col); if (height > 15) put(x + 1, y, col); }
+    for (let tier = 0; tier < 4; tier++) {
+      const start = top + Math.round(tier * height * 0.17);
+      const length = Math.max(2, Math.round(height * 0.38));
+      const spread = height * (0.12 + tier * 0.045);
+      for (let dy = 0; dy < length; dy++) {
+        const w = Math.floor(spread * dy / length);
+        const sway = swayAt(start + dy);
+        for (let dx = -w; dx <= w; dx++) put(cx + dx + sway, start + dy, dx === -w && dy % 3 !== 0 ? rim : col);
+      }
+    }
+  }
+
+  function reeds(cx, base, col, rim) {
+    for (let i = 0; i < 11; i++) {
+      const x = Math.round(cx + (i - 5) * 1.6), h = 4 + Math.floor(hash(i, 72) * 10);
+      for (let y = 0; y < h; y++) put(x + Math.round(Math.sin(i) * y / 8), base - y, y % 4 ? col : rim);
+      if (i % 3 === 0) for (let y = h - 3; y < h; y++) { put(x, base - y, col); put(x + 1, base - y, col); }
+    }
+    // A few flat shoreline stones.
+    for (let i = -5; i <= 5; i++) for (let y = 0; y < 2; y++) put(cx + i, base - y, i % 4 ? col : rim);
+  }
+
+  function rain(t, p) {
+    const rainColor = mix([167, 195, 211], [112, 154, 182], p);
+    // Two depths of windblown rain: fine distant streaks and longer near drops.
+    for (let i = 0; i < Math.round(W * H / 65); i++) {
+      const near = i % 4 === 0, speed = near ? 36 : 23;
+      const y = Math.floor((hash(i, 81) * H + t * speed) % H);
+      const x = Math.floor(((hash(i, 83) * W - t * speed * 0.38) % W + W) % W);
+      const length = near ? 5 : 3;
+      const a = (near ? 0.62 : 0.34) * (y < HZ * 0.55 ? 0.7 : 1);
+      for (let d = 0; d < length; d++) {
+        const dx = x - Math.floor(d * 0.4), dy = y + d;
+        put(dx, dy, mix(get(dx, dy), rainColor, a * (1 - d / (length + 2))));
+      }
+    }
+    for (let i = 0; i < Math.round(W / 4); i++) {
+      const phase = (t * 1.4 + hash(i, 84)) % 1;
+      if (phase > 0.55) continue;
+      const x = Math.floor(hash(i, 85) * W), y = HZ + 3 + Math.floor(hash(i, 86) * (H - HZ - 4));
+      const w = 1 + Math.floor(phase * 5), c = mix(get(x, y), rainColor, (0.55 - phase) * 0.9);
+      put(x - w, y, c); put(x + w, y, c); put(x, y + 1, c);
+    }
   }
 
   // sailboat: travels from the right toward the palm island as the cycle progresses
@@ -619,14 +1073,23 @@
   let boatShown = 0;
   function boat(t, hull, p) {
     const x0 = Math.round(W * 0.86 + (W * 0.24 - W * 0.86) * boatShown) - 4;
-    const y0 = HZ - 2 + (Math.sin(t * 2.2) > 0.3 ? 1 : 0);          // gentle bob
+    const y0 = HZ - 2 + Math.round(Math.sin(t * (landscape === "lake" ? 2.2 : 1.6)) * 0.65);
     const sail = mix(mix([255, 240, 215], [255, 193, 94], 0.3 * (1 - p)), [120, 120, 170], 0.55 * p);
     BOAT.forEach((row, dy) => [...row].forEach((ch, dx) => {
-      if (ch === "s") put(x0 + dx, y0 + dy, sail);
+      if (ch === "s") {
+        const flutter = Math.round(Math.sin(t * 2.6 + dy * 0.7) * 0.75 * (1 - dy / 6));
+        put(x0 + dx + flutter, y0 + dy, sail);
+      }
       else if (ch !== ".") put(x0 + dx, y0 + dy, hull);
     }));
     const foam = mix(sail, hull, 0.4), w = Math.floor(t * 6) % 3;   // little wake behind the stern
     put(x0 + 9 + w, y0 + 7, foam); put(x0 + 11 + w, y0 + 7, foam);
+    for (let i = 0; i < 3; i++) {
+      const d = (t * 0.7 + i / 3) % 1;
+      const x = x0 + 8 + Math.round(d * 10), y = y0 + 8 + Math.round(d * 2);
+      put(x, y, mix(get(x, y), foam, (1 - d) * 0.5));
+      put(x + 1, y, mix(get(x + 1, y), foam, (1 - d) * 0.4));
+    }
   }
 
   function island(cx, rw, rh, col) {
@@ -667,26 +1130,69 @@
     put(tx - 1, ty + 2, nut); put(tx + 1, ty + 2, nut); put(tx, ty + 3, nut); put(tx - 1, ty + 3, nut);
   }
 
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
+  let reduce = motionPreference.matches;
+  motionPreference.addEventListener("change", e => { reduce = e.matches; });
   let last = 0;
   function loop(ts) {
     requestAnimationFrame(loop);
-    if (ts - last < 1000 / 12) return;        // 12 fps keeps the 8-bit feel and the CPU idle
+    if (ts - last < 1000 / 24) return;        // Same pixel grid, smoother motion in every landscape.
+    const elapsed = Math.min(0.15, Math.max(0, (ts - last) / 1000));
     last = ts;
+    const ease = rate => reduce ? 1 : 1 - Math.pow(1 - rate, elapsed * 12 * 0.75);
     // the scene follows the tab on screen, including when peeking
-    const target = view !== "focus" ? 1 : view === mode ? progress() * 0.92 : 0;
-    shown += (target - shown) * (reduce ? 1 : 0.08);
-    moonShown += ((view === "focus" ? 0 : 1) - moonShown) * (reduce ? 1 : 0.08);
-    mtnShown += ((view === "long" ? 1 : 0) - mtnShown) * (reduce ? 1 : 0.06);
-    const voyage = finished || mode === "long" ? 1 : (today.cycle % settings.interval + (mode === "focus" ? progress() : 0)) / settings.interval;
-    if (voyage < boatShown - 0.2) boatShown = voyage;                 // new cycle: back to the start
-    boatShown += (voyage - boatShown) * (reduce ? 1 : 0.05);
-    draw(reduce ? 0 : ts / 1000);
+    const target = view === "focus" ? 0 : 1;
+    if (target !== daylight.to) {
+      daylight.from = shown; daylight.to = target; daylight.elapsed = 0;
+      daylight.duration = Math.max(3, 12 * Math.abs(target - shown));
+    }
+    if (settings.sceneMotion) {
+      daylight.elapsed += elapsed;
+      shown = daylight.from + (daylight.to - daylight.from) * smoothstep(daylight.elapsed / daylight.duration);
+    } else {
+      shown = target;
+      daylight.from = daylight.to = target; daylight.elapsed = daylight.duration;
+    }
+    moonShown = smoothstep((shown - 0.45) / 0.5);
+    mtnShown += ((view === "long" ? 1 : 0) - mtnShown) * ease(0.06);
+    if (landscape !== settings.scene) {
+      previousPalette = scenePalette();
+      landscape = settings.scene;
+      landscapeMix = 0;
+      stormTime = 0;
+      rainTime = 0;
+    }
+    landscapeMix += (1 - landscapeMix) * ease(0.14);
+    const voyageProgress = Math.min(1, (voyage.sessions + (mode === "focus" && !finished ? progress() : 0)) / voyage.target);
+    if (voyageProgress < boatShown - 0.2) boatShown = voyageProgress;
+    boatShown += (voyageProgress - boatShown) * ease(0.05);
+    // Storm animation is an explicit choice, independent of system motion
+    // preferences. Its own clock also prevents jumps after a hidden tab returns.
+    if (landscape === "lake" && settings.stormMotion) {
+      stormTime += elapsed * 0.85 * 0.75;
+      rainTime += elapsed * 0.85;
+    }
+    if (settings.sceneMotion) sceneTime += elapsed * 0.75 * 0.75;
+    draw(sceneTime, stormTime, rainTime);
   }
 
   addEventListener("resize", build);
-  build(); render(); requestAnimationFrame(loop);
-  setTimeout(() => toast("Press START. The sun sets as you focus"), 600);
+  build();
+  // An elapsed session is credited once. The next session waits for the user
+  // rather than inventing completed sessions while the browser was closed.
+  if (running && remaining <= 0) {
+    running = false;
+    const autoBreak = settings.autoBreak, autoFocus = settings.autoFocus;
+    settings.autoBreak = settings.autoFocus = false;
+    advance(true);
+    settings.autoBreak = autoBreak; settings.autoFocus = autoFocus;
+  }
+  if (finished) showDone();
+  if (running) keepAwake(true);
+  render(); persistSession(); requestAnimationFrame(loop);
+  addEventListener("pagehide", persistSession);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") persistSession(); });
+  setTimeout(() => toast(restored.version === 1 ? "Your voyage is saved · welcome back" : "Daylight to focus. Moonlight to rest."), 600);
 })();
 </script>
 </body>
