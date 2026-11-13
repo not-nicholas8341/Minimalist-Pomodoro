@@ -122,7 +122,6 @@
   .done-card h2 { margin: 0; font: 18px/1.3 var(--pixel); color: var(--paper); text-shadow: 3px 3px 0 var(--ink); }
   .done-stats { margin: 0 0 8px; font: 9px/1.8 var(--pixel); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
   .done-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
-  .time.peek { opacity: .45; }
   .mode { position: relative; }
   .mode[data-live="true"]::after { content: ""; position: absolute; top: 3px; right: 3px; width: 4px; height: 4px; background: var(--sun); }
   .label[data-state="paused"] { animation: blink 1.2s steps(1) infinite; }
@@ -190,7 +189,6 @@
   .scene-choice input:focus-visible + .scene-card { outline: 3px solid var(--paper); outline-offset: 3px; }
   .scene-note { margin: 12px 0 0; font: 11px/1.6 var(--sans); color: var(--muted); }
   .weather-option { margin-top: 16px; }
-  .sheet-note { margin: -12px 0 0; font: 11px/1.6 var(--sans); color: var(--muted); }
   dialog { max-height: calc(100dvh - 32px); overflow-y: auto; }
   .unit { font: 8px/1 var(--pixel); letter-spacing: .1em; color: var(--muted); }
   .sheet .btn.primary { align-self: stretch; min-width: 0; }
@@ -240,9 +238,9 @@
   <section class="bottom">
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <div class="controls">
-      <button class="btn" id="reset" title="Reset (R)">RESET</button>
+      <button class="btn" type="button" id="reset" title="Start a new voyage (R)" aria-label="Reset voyage">RESET</button>
       <button class="btn primary" id="toggle" title="Start / pause (Space)">START</button>
-      <button class="btn" id="skip" title="Skip (S)">SKIP</button>
+      <button class="btn" type="button" id="skip" title="Skip to the next session (S)">SKIP</button>
     </div>
     <p class="today" id="today">Today · 0 sessions · 0 min</p>
     <p class="keys"><kbd>SPACE</kbd> start/pause <kbd>S</kbd> skip <kbd>R</kbd> reset <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> modes</p>
@@ -302,7 +300,6 @@
       <label for="s-autoFocus">Auto-start focus</label><input type="checkbox" id="s-autoFocus">
       <label for="s-sound">End chime</label><input type="checkbox" id="s-sound">
     </div>
-    <p class="sheet-note">Your timer resumes after a refresh. The session count applies to your next voyage.</p>
     <button class="btn primary" value="close">DONE</button>
   </form>
 </dialog>
@@ -323,8 +320,8 @@
   // ---------- timer state ----------
   const MODES = { focus: "Focus", short: "Short break", long: "Long break" };
   const dur = m => settings[m] * 60000;
-  // mode = the session the clock belongs to; view = the tab on screen (can "peek" while a session runs)
-  let mode = "focus", view = "focus", running = false, endAt = 0, remaining = dur(mode);
+  // The selected tab always belongs to the active session.
+  let mode = "focus", running = false, endAt = 0, remaining = dur(mode);
   let finished = false;   // true after the long break that closes a cycle
   let sessionMs = dur(mode);
   let voyage = { sessions: 0, minutes: 0, target: settings.interval };
@@ -337,7 +334,7 @@
       && Number.isInteger(restored.voyage.target) && restored.voyage.target >= 1 && restored.voyage.target <= 12
       && Number.isFinite(restored.voyage.minutes) && restored.voyage.minutes >= 0
       && (!restored.running || Number.isFinite(restored.endAt))) {
-    mode = view = restored.mode;
+    mode = restored.mode;
     sessionMs = restored.sessionMs;
     running = restored.running === true;
     endAt = restored.endAt;
@@ -355,22 +352,19 @@
   const progress = () => Math.max(0, Math.min(1, 1 - remaining / sessionMs));
 
   function render() {
-    const t = fmt(remaining), paused = !running && remaining < sessionMs, peek = view !== mode;
-    $("time").textContent = peek ? fmt(dur(view)) : t;
-    $("time").classList.toggle("peek", peek);
+    const t = fmt(remaining), paused = !running && remaining < sessionMs;
+    $("time").textContent = t;
     document.title = `${paused ? "❚❚ " : ""}${t} · ${MODES[mode]}`;
-    $("toggle").textContent = finished ? "NEW CYCLE" : peek ? `START ${view === "focus" ? "FOCUS" : view.toUpperCase()}` : running ? "PAUSE" : (paused ? "RESUME" : "START");
+    $("toggle").textContent = finished ? "NEW CYCLE" : running ? "PAUSE" : (paused ? "RESUME" : "START");
     document.querySelectorAll(".mode").forEach(b => {
-      b.setAttribute("aria-selected", b.dataset.mode === view);
+      b.setAttribute("aria-selected", b.dataset.mode === mode);
       b.dataset.live = running && b.dataset.mode === mode;
     });
     const done = voyage.sessions;
-    const state = peek ? "preview" : running ? (mode === "focus" ? "focusing" : "resting") : paused ? "paused" : "ready";
-    $("label").textContent = (peek ? MODES[view] : mode === "focus" ? `Session ${Math.min(done + 1, voyage.target)} of ${voyage.target}` : MODES[mode]) + " · " + state;
+    const state = running ? (mode === "focus" ? "focusing" : "resting") : paused ? "paused" : "ready";
+    $("label").textContent = (mode === "focus" ? `Session ${Math.min(done + 1, voyage.target)} of ${voyage.target}` : MODES[mode]) + " · " + state;
     $("label").dataset.state = state;
-    $("hint").textContent = peek
-      ? `${MODES[mode]} still running · ${t} left · click ${mode.toUpperCase()} to return`
-      : mode === "focus"
+    $("hint").textContent = mode === "focus"
       ? (running ? "Daylight to focus · one little voyage at a time" : `Sail the boat to the island · ${voyage.target - done} focus session${voyage.target - done === 1 ? "" : "s"} to go`)
       : mode === "long" ? (voyage.sessions >= voyage.target ? "The boat made it to the island · enjoy the long break" : "Take a longer rest · your voyage is saved") : "Short break: stretch, drink water";
     $("dots").innerHTML = Array.from({ length: voyage.target }, (_, i) => `<span class="dot${i < done ? " on" : ""}"></span>`).join("");
@@ -389,12 +383,19 @@
     running = false; remaining = Math.max(0, endAt - Date.now());
     keepAwake(false); persistSession(); render();
   }
-  function reset() { running = false; sessionMs = dur(mode); remaining = sessionMs; keepAwake(false); persistSession(); render(); }
+  function reset() { running = false; endAt = 0; sessionMs = dur(mode); remaining = sessionMs; keepAwake(false); persistSession(); render(); }
+  function resetVoyage() {
+    newVoyage();
+    $("done").hidden = true;
+    mode = "focus";
+    boatShown = 0;
+    reset();
+    toast("New voyage · session 1 · press START");
+  }
   // switching modes keeps the clock going if it was already running
-  function setMode(m, keep = false) { mode = view = m; reset(); if (keep) start(); }
+  function setMode(m, keep = false) { mode = m; reset(); if (keep) start(); }
   function toggle() {
-    if (view !== mode) { setMode(view, true); toast(`${MODES[view]} started`); }
-    else running ? pause() : start();
+    running ? pause() : start();
   }
 
   let toastTimer;
@@ -430,7 +431,7 @@
     setMode(next, auto);
     const msg = counted
       ? (from === "focus" ? (next === "long" ? "Last focus done! Long break, the mountains rise" : "Focus done. Take a short break") : "Break over. Back to focus")
-      : `Skipped to ${MODES[next].toLowerCase()}`;
+      : `Skipped ${MODES[from].toLowerCase()} · ${MODES[next].toLowerCase()} ${auto ? "started" : "ready"}`;
     toast(msg + (auto ? "" : " · press START"));
   }
 
@@ -441,7 +442,7 @@
   }, 200);
 
   $("toggle").onclick = toggle;
-  $("reset").onclick = () => { view = mode; reset(); };
+  $("reset").onclick = resetVoyage;
   $("skip").onclick = () => advance(false);
   // end-of-cycle screen: go again or stop
   function showDone() {
@@ -454,11 +455,10 @@
   $("stop").onclick = () => { closeDone(); render(); toast("Good work. Rest well"); };
 
   function pickMode(m) {
-    if (m === view) return;
-    if (running) {                       // peek: the running session keeps counting
-      view = m; render();
-      toast(m === mode ? `Back to ${MODES[m].toLowerCase()}` : `${MODES[mode]} keeps running · press START ${m.toUpperCase()} to switch`);
-    } else { setMode(m); toast(`${MODES[m]} ready · press START`); }
+    if (m === mode) return;
+    const wasRunning = running;
+    setMode(m, wasRunning);
+    toast(`${MODES[m]} ${wasRunning ? "started" : "ready · press START"}`);
   }
   document.querySelectorAll(".mode").forEach(b => b.onclick = () => pickMode(b.dataset.mode));
 
@@ -466,7 +466,7 @@
     if (!$("done").hidden || $("settings").open || e.target.closest("input, textarea") || e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key.toLowerCase();
     if (k === " ") { e.preventDefault(); toggle(); }
-    else if (k === "r") { view = mode; reset(); }
+    else if (k === "r") resetVoyage();
     else if (k === "s") advance(false);
     else if (k === "1") pickMode("focus");
     else if (k === "2") pickMode("short");
@@ -613,7 +613,7 @@
     return q > BAYER[y & 1][x & 1] ? bands[i + 1] : bands[i];
   }
 
-  let shown = view === "focus" ? 0 : 1, moonShown = shown, mtnShown = view === "long" ? 1 : 0;
+  let shown = mode === "focus" ? 0 : 1, moonShown = shown, mtnShown = mode === "long" ? 1 : 0;
   const daylight = { from: shown, to: shown, elapsed: 0, duration: 12 };
   const smoothstep = u => { u = clamp(u); return u * u * u * (u * (u * 6 - 15) + 10); };
   function draw(t, weatherTime, rainClock) {
@@ -1139,8 +1139,8 @@
     const elapsed = Math.min(0.15, Math.max(0, (ts - last) / 1000));
     last = ts;
     const ease = rate => reduce ? 1 : 1 - Math.pow(1 - rate, elapsed * 12 * 0.75);
-    // the scene follows the tab on screen, including when peeking
-    const target = view === "focus" ? 0 : 1;
+    // The scene follows the selected session.
+    const target = mode === "focus" ? 0 : 1;
     if (target !== daylight.to) {
       daylight.from = shown; daylight.to = target; daylight.elapsed = 0;
       daylight.duration = Math.max(3, 12 * Math.abs(target - shown));
@@ -1153,7 +1153,7 @@
       daylight.from = daylight.to = target; daylight.elapsed = daylight.duration;
     }
     moonShown = smoothstep((shown - 0.45) / 0.5);
-    mtnShown += ((view === "long" ? 1 : 0) - mtnShown) * ease(0.06);
+    mtnShown += ((mode === "long" ? 1 : 0) - mtnShown) * ease(0.06);
     if (landscape !== settings.scene) {
       previousPalette = scenePalette();
       landscape = settings.scene;
